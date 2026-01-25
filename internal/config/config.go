@@ -67,7 +67,9 @@ func Save(cfg *Config, path string) error {
 		path = DefaultConfigPath()
 	}
 
-	if err := EnsureConfigDir(); err != nil {
+	// Ensure the directory exists for the given path
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
