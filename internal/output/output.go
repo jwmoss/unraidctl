@@ -32,18 +32,18 @@ func (f *Formatter) JSON(data interface{}) error {
 
 func (f *Formatter) Print(format string, args ...interface{}) {
 	if !f.quiet {
-		fmt.Fprintf(f.writer, format, args...)
+		_, _ = fmt.Fprintf(f.writer, format, args...)
 	}
 }
 
 func (f *Formatter) Println(args ...interface{}) {
 	if !f.quiet {
-		fmt.Fprintln(f.writer, args...)
+		_, _ = fmt.Fprintln(f.writer, args...)
 	}
 }
 
 func (f *Formatter) Error(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, args...)
+	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 }
 
 func (f *Formatter) IsJSON() bool {
@@ -56,24 +56,24 @@ func (f *Formatter) Table(headers []string, rows [][]string) {
 	// Print headers
 	for i, h := range headers {
 		if i > 0 {
-			fmt.Fprint(w, "\t")
+			_, _ = fmt.Fprint(w, "\t")
 		}
-		fmt.Fprint(w, h)
+		_, _ = fmt.Fprint(w, h)
 	}
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
 
 	// Print rows
 	for _, row := range rows {
 		for i, cell := range row {
 			if i > 0 {
-				fmt.Fprint(w, "\t")
+				_, _ = fmt.Fprint(w, "\t")
 			}
-			fmt.Fprint(w, cell)
+			_, _ = fmt.Fprint(w, cell)
 		}
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 
-	w.Flush()
+	_ = w.Flush()
 }
 
 func (f *Formatter) Success(msg string) {
@@ -86,8 +86,8 @@ func (f *Formatter) Success(msg string) {
 
 func (f *Formatter) Warn(msg string) {
 	if f.noColor {
-		fmt.Fprintln(os.Stderr, "⚠", msg)
+		_, _ = fmt.Fprintln(os.Stderr, "⚠", msg)
 	} else {
-		fmt.Fprintln(os.Stderr, "\033[33m⚠\033[0m", msg)
+		_, _ = fmt.Fprintln(os.Stderr, "\033[33m⚠\033[0m", msg)
 	}
 }

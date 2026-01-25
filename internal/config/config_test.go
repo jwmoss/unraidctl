@@ -93,13 +93,9 @@ api_key: file-api-key
 		t.Fatalf("failed to write config file: %v", err)
 	}
 
-	// Set environment variables
-	os.Setenv("UNRAID_SERVER", "http://env-server.local")
-	os.Setenv("UNRAID_API_KEY", "env-api-key")
-	defer func() {
-		os.Unsetenv("UNRAID_SERVER")
-		os.Unsetenv("UNRAID_API_KEY")
-	}()
+	// Set environment variables (t.Setenv auto-cleans up after test)
+	t.Setenv("UNRAID_SERVER", "http://env-server.local")
+	t.Setenv("UNRAID_API_KEY", "env-api-key")
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -116,13 +112,9 @@ api_key: file-api-key
 }
 
 func TestLoad_EnvOnly(t *testing.T) {
-	// Set environment variables
-	os.Setenv("UNRAID_SERVER", "http://env-only-server.local")
-	os.Setenv("UNRAID_API_KEY", "env-only-api-key")
-	defer func() {
-		os.Unsetenv("UNRAID_SERVER")
-		os.Unsetenv("UNRAID_API_KEY")
-	}()
+	// Set environment variables (t.Setenv auto-cleans up after test)
+	t.Setenv("UNRAID_SERVER", "http://env-only-server.local")
+	t.Setenv("UNRAID_API_KEY", "env-only-api-key")
 
 	// Load with non-existent config file
 	cfg, err := Load("/non/existent/path/config.yaml")
