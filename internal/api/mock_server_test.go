@@ -8,57 +8,62 @@ import (
 )
 
 // MockUnraidAPI creates a mock HTTP server that simulates the Unraid GraphQL API
+// Note: The client appends /graphql to the base URL, so we need to handle that path
 func MockUnraidAPI() *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify it's a GraphQL request
-		if r.Method != "POST" || r.URL.Path != "/graphql" {
-			http.Error(w, "Not Found", http.StatusNotFound)
-			return
-		}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/graphql", handleGraphQL)
+	return httptest.NewServer(mux)
+}
 
-		// Verify API key
-		apiKey := r.Header.Get("x-api-key")
-		if apiKey == "" {
-			http.Error(w, `{"errors":[{"message":"Unauthorized"}]}`, http.StatusUnauthorized)
-			return
-		}
+func handleGraphQL(w http.ResponseWriter, r *http.Request) {
+	// Verify it's a POST request
+	if r.Method != "POST" {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-		// Parse the GraphQL query
-		var req struct {
-			Query     string                 `json:"query"`
-			Variables map[string]interface{} `json:"variables"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"errors":[{"message":"Invalid request"}]}`, http.StatusBadRequest)
-			return
-		}
+	// Verify API key
+	apiKey := r.Header.Get("x-api-key")
+	if apiKey == "" {
+		http.Error(w, `{"errors":[{"message":"Unauthorized"}]}`, http.StatusUnauthorized)
+		return
+	}
 
-		// Route based on query content
-		w.Header().Set("Content-Type", "application/json")
+	// Parse the GraphQL query
+	var req struct {
+		Query     string                 `json:"query"`
+		Variables map[string]interface{} `json:"variables"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"errors":[{"message":"Invalid request"}]}`, http.StatusBadRequest)
+		return
+	}
 
-		var response interface{}
-		switch {
-		case strings.Contains(req.Query, "info"):
-			response = mockInfoResponse()
-		case strings.Contains(req.Query, "array"):
-			response = mockArrayResponse()
-		case strings.Contains(req.Query, "docker"):
-			response = mockDockerResponse()
-		case strings.Contains(req.Query, "shares"):
-			response = mockSharesResponse()
-		case strings.Contains(req.Query, "notifications"):
-			response = mockNotificationsResponse()
-		case strings.Contains(req.Query, "vms"):
-			response = mockVMsResponse()
-		default:
-			response = map[string]interface{}{
-				"errors": []map[string]string{
-					{"message": "Unknown query"},
-				},
-			}
+	// Route based on query content
+	w.Header().Set("Content-Type", "application/json")
+
+	var response interface{}
+	switch {
+	case strings.Contains(req.Query, "info"):
+		response = mockInfoResponse()
+	case strings.Contains(req.Query, "array"):
+		response = mockArrayResponse()
+	case strings.Contains(req.Query, "docker"):
+		response = mockDockerResponse()
+	case strings.Contains(req.Query, "shares"):
+		response = mockSharesResponse()
+	case strings.Contains(req.Query, "notifications"):
+		response = mockNotificationsResponse()
+	case strings.Contains(req.Query, "vms"):
+		response = mockVMsResponse()
+	default:
+		response = map[string]interface{}{
+			"errors": []map[string]string{
+				{"message": "Unknown query"},
+			},
 		}
-		_ = json.NewEncoder(w).Encode(response)
-	}))
+	}
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 func mockInfoResponse() map[string]interface{} {
