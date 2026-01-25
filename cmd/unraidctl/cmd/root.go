@@ -101,17 +101,3 @@ var versionCmd = &cobra.Command{
 		fmt.Println("unraidctl version 0.1.0")
 	},
 }
-
-func exitCode(err error) int {
-	if err == nil {
-		return 0
-	}
-	// Could add more specific error type checking here
-	return 1
-}
-
-func handleError(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-	}
-}
