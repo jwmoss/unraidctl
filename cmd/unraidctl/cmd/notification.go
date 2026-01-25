@@ -9,11 +9,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var showAll bool
+
 var notificationCmd = &cobra.Command{
 	Use:     "notification",
 	Aliases: []string{"notifications", "notify"},
 	Short:   "Manage notifications",
-	Long:    `Commands for viewing and managing notifications on your Unraid server.`,
+	Long:    `Commands for viewing notifications on your Unraid server.`,
 }
 
 var notificationListCmd = &cobra.Command{
@@ -24,32 +26,43 @@ var notificationListCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
+		query := api.NotificationsQuery
+		if showAll {
+			query = api.AllNotificationsQuery
+		}
+
 		var resp api.NotificationsResponse
-		if err := apiClient.Query(ctx, api.NotificationsQuery, nil, &resp); err != nil {
+		if err := apiClient.Query(ctx, query, nil, &resp); err != nil {
 			return fmt.Errorf("failed to list notifications: %w", err)
 		}
 
+		notifications := resp.Notifications.List
+
 		if out.IsJSON() {
-			return out.JSON(resp.Notifications)
+			return out.JSON(notifications)
 		}
 
-		if len(resp.Notifications) == 0 {
+		if len(notifications) == 0 {
 			out.Println("No notifications")
 			return nil
 		}
 
-		headers := []string{"ID", "IMPORTANCE", "SUBJECT", "TIMESTAMP"}
+		if !showAll {
+			out.Print("Unread notifications: %d\n\n", resp.Notifications.Overview.Unread.Total)
+		}
+
+		headers := []string{"IMPORTANCE", "SUBJECT", "TIMESTAMP"}
 		var rows [][]string
-		for _, n := range resp.Notifications {
-			idShort := n.ID
-			if len(idShort) > 12 {
-				idShort = idShort[:12]
+		for _, n := range notifications {
+			// Parse and format timestamp
+			ts := n.Timestamp
+			if t, err := time.Parse(time.RFC3339, n.Timestamp); err == nil {
+				ts = t.Local().Format("2006-01-02 15:04")
 			}
 			rows = append(rows, []string{
-				idShort,
 				n.Importance,
-				n.Subject,
-				n.Timestamp,
+				truncate(n.Subject, 50),
+				ts,
 			})
 		}
 		out.Table(headers, rows)
@@ -58,31 +71,7 @@ var notificationListCmd = &cobra.Command{
 	},
 }
 
-var notificationDismissCmd = &cobra.Command{
-	Use:   "dismiss <id>",
-	Short: "Dismiss a notification",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		notifID := args[0]
-
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		vars := map[string]interface{}{"id": notifID}
-		if err := apiClient.Query(ctx, api.NotificationDismissMutation, vars, nil); err != nil {
-			return fmt.Errorf("failed to dismiss notification: %w", err)
-		}
-
-		if out.IsJSON() {
-			return out.JSON(map[string]string{"dismissed": notifID})
-		}
-
-		out.Success(fmt.Sprintf("Notification %s dismissed", notifID))
-		return nil
-	},
-}
-
 func init() {
 	notificationCmd.AddCommand(notificationListCmd)
-	notificationCmd.AddCommand(notificationDismissCmd)
+	notificationListCmd.Flags().BoolVarP(&showAll, "all", "a", false, "show all notifications (not just unread)")
 }

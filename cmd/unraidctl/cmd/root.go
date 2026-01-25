@@ -69,7 +69,11 @@ Configuration can be provided via:
 }
 
 func Execute() error {
-	return rootCmd.Execute()
+	err := rootCmd.Execute()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	}
+	return err
 }
 
 func init() {

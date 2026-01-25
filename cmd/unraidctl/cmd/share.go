@@ -13,7 +13,7 @@ var shareCmd = &cobra.Command{
 	Use:     "share",
 	Aliases: []string{"shares"},
 	Short:   "Manage shares",
-	Long:    `Commands for listing and managing user shares on your Unraid server.`,
+	Long:    `Commands for listing user shares on your Unraid server.`,
 }
 
 var shareListCmd = &cobra.Command{
@@ -38,16 +38,14 @@ var shareListCmd = &cobra.Command{
 			return nil
 		}
 
-		headers := []string{"NAME", "SIZE", "USED", "FREE", "COMMENT"}
+		headers := []string{"NAME", "USED", "FREE", "COMMENT"}
 		var rows [][]string
 		for _, s := range resp.Shares {
-			sizeStr := formatSize(s.Size)
-			usedStr := formatSize(s.Used)
-			freeStr := formatSize(s.Free)
+			usedStr := formatSizeKB(s.Used)
+			freeStr := formatSizeKB(s.Free)
 
 			rows = append(rows, []string{
 				s.Name,
-				sizeStr,
 				usedStr,
 				freeStr,
 				s.Comment,
@@ -59,20 +57,28 @@ var shareListCmd = &cobra.Command{
 	},
 }
 
-func formatSize(bytes int64) string {
-	if bytes == 0 {
+func formatSizeKB(kb int64) string {
+	if kb == 0 {
 		return "-"
 	}
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
+	// Convert KB to appropriate unit
+	const (
+		KB = 1
+		MB = 1024
+		GB = 1024 * 1024
+		TB = 1024 * 1024 * 1024
+	)
+
+	switch {
+	case kb >= TB:
+		return fmt.Sprintf("%.1f TB", float64(kb)/float64(TB))
+	case kb >= GB:
+		return fmt.Sprintf("%.1f GB", float64(kb)/float64(GB))
+	case kb >= MB:
+		return fmt.Sprintf("%.1f MB", float64(kb)/float64(MB))
+	default:
+		return fmt.Sprintf("%d KB", kb)
 	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 func init() {

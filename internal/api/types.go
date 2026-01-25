@@ -1,6 +1,7 @@
 package api
 
 // Response types for Unraid API
+// Based on actual schema from https://docs.unraid.net/API/
 
 type InfoResponse struct {
 	Info struct {
@@ -8,24 +9,15 @@ type InfoResponse struct {
 			Platform string `json:"platform"`
 			Distro   string `json:"distro"`
 			Release  string `json:"release"`
-			Uptime   int64  `json:"uptime"`
+			Uptime   string `json:"uptime"` // ISO 8601 timestamp of boot time
 			Hostname string `json:"hostname"`
 		} `json:"os"`
 		CPU struct {
 			Manufacturer string  `json:"manufacturer"`
 			Brand        string  `json:"brand"`
 			Cores        int     `json:"cores"`
-			Threads      int     `json:"threads"`
 			Speed        float64 `json:"speed"`
 		} `json:"cpu"`
-		Memory struct {
-			Total int64 `json:"total"`
-			Free  int64 `json:"free"`
-			Used  int64 `json:"used"`
-		} `json:"memory"`
-		Versions struct {
-			Unraid string `json:"unraid"`
-		} `json:"versions"`
 	} `json:"info"`
 }
 
@@ -33,36 +25,30 @@ type ArrayResponse struct {
 	Array struct {
 		State    string `json:"state"`
 		Capacity struct {
-			Disks struct {
-				Free  int64 `json:"free"`
-				Used  int64 `json:"used"`
-				Total int64 `json:"total"`
-			} `json:"disks"`
+			Kilobytes struct {
+				Free  string `json:"free"` // String in API response
+				Used  string `json:"used"`
+				Total string `json:"total"`
+			} `json:"kilobytes"`
 		} `json:"capacity"`
-		Disks []struct {
-			ID     string `json:"id"`
-			Name   string `json:"name"`
-			Size   int64  `json:"size"`
-			Status string `json:"status"`
-			Temp   int    `json:"temp"`
-			Type   string `json:"type"`
-		} `json:"disks"`
-		ParityCheckProgress float64 `json:"parityCheckProgress"`
-		ParityCheckRunning  bool    `json:"parityCheckRunning"`
+		Disks []ArrayDisk `json:"disks"`
 	} `json:"array"`
 }
 
-type ArrayMutationResponse struct {
-	ArrayStart *struct {
-		State string `json:"state"`
-	} `json:"arrayStart,omitempty"`
-	ArrayStop *struct {
-		State string `json:"state"`
-	} `json:"arrayStop,omitempty"`
+type ArrayDisk struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Device string `json:"device"`
+	Size   int64  `json:"size"` // in KB
+	Status string `json:"status"`
+	Temp   int    `json:"temp"`
+	Type   string `json:"type"`
 }
 
-type DockerContainersResponse struct {
-	DockerContainers []DockerContainer `json:"dockerContainers"`
+type DockerResponse struct {
+	Docker struct {
+		Containers []DockerContainer `json:"containers"`
+	} `json:"docker"`
 }
 
 type DockerContainer struct {
@@ -74,29 +60,6 @@ type DockerContainer struct {
 	AutoStart bool     `json:"autoStart"`
 }
 
-type DockerMutationResponse struct {
-	DockerContainerStart   *DockerContainer `json:"dockerContainerStart,omitempty"`
-	DockerContainerStop    *DockerContainer `json:"dockerContainerStop,omitempty"`
-	DockerContainerRestart *DockerContainer `json:"dockerContainerRestart,omitempty"`
-}
-
-type VMsResponse struct {
-	VMs []VM `json:"vms"`
-}
-
-type VM struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	State     string `json:"state"`
-	CoreCount int    `json:"coreCount"`
-	Memory    int64  `json:"memory"`
-}
-
-type VMMutationResponse struct {
-	VMStart *VM `json:"vmStart,omitempty"`
-	VMStop  *VM `json:"vmStop,omitempty"`
-}
-
 type SharesResponse struct {
 	Shares []Share `json:"shares"`
 }
@@ -104,19 +67,36 @@ type SharesResponse struct {
 type Share struct {
 	Name    string `json:"name"`
 	Comment string `json:"comment"`
-	Free    int64  `json:"free"`
-	Used    int64  `json:"used"`
-	Size    int64  `json:"size"`
+	Free    int64  `json:"free"` // in KB
+	Used    int64  `json:"used"` // in KB
 }
 
 type NotificationsResponse struct {
-	Notifications []Notification `json:"notifications"`
+	Notifications struct {
+		Overview struct {
+			Unread struct {
+				Total int `json:"total"`
+			} `json:"unread"`
+		} `json:"overview"`
+		List []Notification `json:"list"`
+	} `json:"notifications"`
 }
 
 type Notification struct {
-	ID          string `json:"id"`
-	Subject     string `json:"subject"`
-	Description string `json:"description"`
-	Importance  string `json:"importance"`
-	Timestamp   string `json:"timestamp"`
+	ID         string `json:"id"`
+	Subject    string `json:"subject"`
+	Importance string `json:"importance"`
+	Timestamp  string `json:"timestamp"`
+}
+
+type VMsResponse struct {
+	VMs struct {
+		ID     string `json:"id"`
+		Domain []VM   `json:"domain"`
+	} `json:"vms"`
+}
+
+type VM struct {
+	Name  string `json:"name"`
+	State string `json:"state"`
 }
