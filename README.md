@@ -1,14 +1,41 @@
 # unraidctl
 
+[![CI](https://github.com/jwmoss/unraidctl/actions/workflows/ci.yml/badge.svg)](https://github.com/jwmoss/unraidctl/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jwmoss/unraidctl)](https://goreportcard.com/report/github.com/jwmoss/unraidctl)
+[![Go Reference](https://pkg.go.dev/badge/github.com/jwmoss/unraidctl.svg)](https://pkg.go.dev/github.com/jwmoss/unraidctl)
+[![Release](https://img.shields.io/github/v/release/jwmoss/unraidctl)](https://github.com/jwmoss/unraidctl/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A command-line tool to interact with the [Unraid API](https://docs.unraid.net/API/).
 
+## Features
+
+- **System Information** - View hostname, OS, CPU, and uptime
+- **Array Management** - Check array status, capacity, and disk health
+- **Docker Containers** - List containers with state and status
+- **Shares** - List user shares with usage statistics
+- **Notifications** - View unread and all notifications
+- **Virtual Machines** - List VMs (when enabled)
+- **JSON Output** - Machine-readable output for scripting
+
+## Requirements
+
+- Unraid 7.2+ (API built-in) or Unraid with the [Unraid Connect](https://docs.unraid.net/unraid-connect/overview-and-setup/) plugin
+- An API key (create at **Settings → Management Access → API Keys**)
+
 ## Installation
+
+### From Release (recommended)
+
+Download the latest binary from [Releases](https://github.com/jwmoss/unraidctl/releases/latest).
+
+### Using Go
 
 ```bash
 go install github.com/jwmoss/unraidctl@latest
 ```
 
-Or build from source:
+### Build from source
 
 ```bash
 git clone https://github.com/jwmoss/unraidctl.git
@@ -18,7 +45,13 @@ go build -o unraidctl ./cmd/unraidctl
 
 ## Configuration
 
-### Config file (recommended)
+### Interactive setup (recommended)
+
+```bash
+unraidctl configure
+```
+
+### Config file
 
 Create `~/.config/unraidctl/config.yaml`:
 
@@ -46,30 +79,23 @@ unraidctl info
 
 # Array management
 unraidctl array status
-unraidctl array start --force
-unraidctl array stop --force
 
 # Docker containers
 unraidctl docker list
-unraidctl docker start <container>
-unraidctl docker stop <container>
-unraidctl docker restart <container>
 
 # Virtual machines
 unraidctl vm list
-unraidctl vm start <name>
-unraidctl vm stop <name>
 
 # Shares
 unraidctl share list
 
 # Notifications
 unraidctl notification list
-unraidctl notification dismiss <id>
+unraidctl notification list --all
 
 # JSON output for scripting
 unraidctl info --json
-unraidctl docker list --json | jq '.[] | .name'
+unraidctl docker list --json | jq '.[].names[0]'
 ```
 
 ## Global Flags
@@ -93,6 +119,10 @@ unraidctl docker list --json | jq '.[] | .name'
 | 3 | Authentication error |
 | 4 | Connection error |
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
 ## License
 
-MIT
+MIT - see [LICENSE](LICENSE) for details.
