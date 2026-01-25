@@ -36,26 +36,28 @@ func MockUnraidAPI() *httptest.Server {
 		// Route based on query content
 		w.Header().Set("Content-Type", "application/json")
 
+		var response interface{}
 		switch {
 		case strings.Contains(req.Query, "info"):
-			json.NewEncoder(w).Encode(mockInfoResponse())
+			response = mockInfoResponse()
 		case strings.Contains(req.Query, "array"):
-			json.NewEncoder(w).Encode(mockArrayResponse())
+			response = mockArrayResponse()
 		case strings.Contains(req.Query, "docker"):
-			json.NewEncoder(w).Encode(mockDockerResponse())
+			response = mockDockerResponse()
 		case strings.Contains(req.Query, "shares"):
-			json.NewEncoder(w).Encode(mockSharesResponse())
+			response = mockSharesResponse()
 		case strings.Contains(req.Query, "notifications"):
-			json.NewEncoder(w).Encode(mockNotificationsResponse())
+			response = mockNotificationsResponse()
 		case strings.Contains(req.Query, "vms"):
-			json.NewEncoder(w).Encode(mockVMsResponse())
+			response = mockVMsResponse()
 		default:
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			response = map[string]interface{}{
 				"errors": []map[string]string{
 					{"message": "Unknown query"},
 				},
-			})
+			}
 		}
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 }
 
