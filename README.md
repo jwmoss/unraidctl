@@ -12,10 +12,14 @@ A command-line tool to interact with the [Unraid API](https://docs.unraid.net/AP
 
 - **System Information** - View hostname, OS, CPU, and uptime
 - **Array Management** - Check array status, capacity, and disk health
-- **Docker Containers** - List containers with state and status
+- **Array Operations** - Start/stop the array and manage disk assignment/mount state
+- **Docker Containers** - List, inspect, start, stop, pause, update, remove, and view logs
 - **Shares** - List user shares with usage statistics
 - **Notifications** - View unread and all notifications
 - **Virtual Machines** - List VMs (when enabled)
+- **API Keys** - List, create, update, delete, and manage roles/permissions
+- **Logs** - List and read Unraid API log files
+- **Settings and SSO** - Inspect/update API settings and view OIDC provider configuration
 - **JSON Output** - Machine-readable output for scripting
 
 ## Requirements
@@ -79,9 +83,27 @@ unraidctl info
 
 # Array management
 unraidctl array status
+unraidctl array start
+unraidctl array stop
+unraidctl array add-disk <disk-id> --slot 1
+unraidctl array remove-disk <disk-id>
+unraidctl array mount-disk <disk-id>
+unraidctl array unmount-disk <disk-id>
+unraidctl array clear-stats <disk-id>
 
 # Docker containers
 unraidctl docker list
+unraidctl docker list --wide
+unraidctl docker inspect <container-id>
+unraidctl docker logs <container-id> --tail 200
+unraidctl docker start <container-id>
+unraidctl docker stop <container-id>
+unraidctl docker pause <container-id>
+unraidctl docker unpause <container-id>
+unraidctl docker update <container-id>
+unraidctl docker update-all
+unraidctl docker autostart <container-id> --enable --wait 10
+unraidctl docker remove <container-id> --with-image
 
 # Virtual machines
 unraidctl vm list
@@ -92,6 +114,30 @@ unraidctl share list
 # Notifications
 unraidctl notification list
 unraidctl notification list --all
+
+# API keys
+unraidctl apikey list
+unraidctl apikey create --name automation --role VIEWER
+unraidctl apikey update <api-key-id> --name automation-v2
+unraidctl apikey add-role <api-key-id> --role ADMIN
+unraidctl apikey remove-role <api-key-id> --role VIEWER
+unraidctl apikey delete <api-key-id>
+unraidctl apikey roles
+unraidctl apikey permissions
+
+# Logs
+unraidctl log list
+unraidctl log show /var/log/graphql-api.log --lines 100
+
+# Settings and SSO/OIDC
+unraidctl settings show
+unraidctl settings show --values
+unraidctl settings update --file settings.json
+unraidctl sso status
+unraidctl sso providers
+unraidctl sso public-providers
+unraidctl sso config
+unraidctl sso validate-token <token>
 
 # JSON output for scripting
 unraidctl info --json

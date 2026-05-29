@@ -44,6 +44,28 @@ func handleGraphQL(w http.ResponseWriter, r *http.Request) {
 
 	var response interface{}
 	switch {
+	case strings.Contains(req.Query, "apiKeyPossibleRoles"):
+		response = mockAPIKeyMetadataResponse()
+	case strings.Contains(req.Query, "apiKeys"):
+		response = mockAPIKeysResponse()
+	case strings.Contains(req.Query, "apiKey") && strings.Contains(req.Query, "create"):
+		response = mockCreateAPIKeyResponse()
+	case strings.Contains(req.Query, "setState"):
+		response = mockArraySetStateResponse()
+	case strings.Contains(req.Query, "logs("):
+		response = mockDockerLogsResponse()
+	case strings.Contains(req.Query, "logFiles"):
+		response = mockLogFilesResponse()
+	case strings.Contains(req.Query, "logFile("):
+		response = mockLogFileResponse()
+	case strings.Contains(req.Query, "settings"):
+		response = mockSettingsResponse()
+	case strings.Contains(req.Query, "validateOidcSession"):
+		response = mockValidateOIDCSessionResponse()
+	case strings.Contains(req.Query, "oidcConfiguration"):
+		response = mockOIDCConfigurationResponse()
+	case strings.Contains(req.Query, "oidcProviders") || strings.Contains(req.Query, "publicOidcProviders"):
+		response = mockOIDCProvidersResponse()
 	case strings.Contains(req.Query, "info"):
 		response = mockInfoResponse()
 	case strings.Contains(req.Query, "array"):
@@ -83,6 +105,68 @@ func mockInfoResponse() map[string]interface{} {
 					"cores":        4,
 					"speed":        3.5,
 				},
+			},
+		},
+	}
+}
+
+func mockAPIKeysResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"apiKeys": []map[string]interface{}{
+				{
+					"id":          "key-1",
+					"name":        "automation",
+					"description": "automation key",
+					"roles":       []string{"VIEWER"},
+					"createdAt":   "2026-05-01T12:00:00.000Z",
+					"permissions": []map[string]interface{}{
+						{"resource": "INFO", "actions": []string{"READ_ANY"}},
+					},
+				},
+			},
+		},
+	}
+}
+
+func mockAPIKeyMetadataResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"apiKeyPossibleRoles": []string{"ADMIN", "VIEWER", "GUEST"},
+			"apiKeyPossiblePermissions": []map[string]interface{}{
+				{"resource": "INFO", "actions": []string{"READ_ANY"}},
+				{"resource": "DOCKER", "actions": []string{"READ_ANY", "UPDATE_ANY"}},
+			},
+			"getAvailableAuthActions": []string{"READ_ANY", "UPDATE_ANY"},
+		},
+	}
+}
+
+func mockCreateAPIKeyResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"apiKey": map[string]interface{}{
+				"create": map[string]interface{}{
+					"id":          "key-2",
+					"key":         "secret-value",
+					"name":        "new-key",
+					"description": "new key",
+					"roles":       []string{"VIEWER"},
+					"createdAt":   "2026-05-02T12:00:00.000Z",
+					"permissions": []map[string]interface{}{},
+				},
+			},
+		},
+	}
+}
+
+func mockArraySetStateResponse() map[string]interface{} {
+	resp := mockArrayResponse()
+	array := resp["data"].(map[string]interface{})["array"]
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"array": map[string]interface{}{
+				"setState": array,
 			},
 		},
 	}
@@ -169,6 +253,29 @@ func mockDockerResponse() map[string]interface{} {
 	}
 }
 
+func mockDockerLogsResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"docker": map[string]interface{}{
+				"logs": map[string]interface{}{
+					"containerId": "abc123def456",
+					"cursor":      "2026-05-29T12:00:01.000Z",
+					"lines": []map[string]interface{}{
+						{
+							"timestamp": "2026-05-29T12:00:00.000Z",
+							"message":   "server started",
+						},
+						{
+							"timestamp": "2026-05-29T12:00:01.000Z",
+							"message":   "ready",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func mockSharesResponse() map[string]interface{} {
 	return map[string]interface{}{
 		"data": map[string]interface{}{
@@ -245,6 +352,131 @@ func mockVMsResponse() map[string]interface{} {
 						"state": "shutoff",
 					},
 				},
+			},
+		},
+	}
+}
+
+func mockLogFilesResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"logFiles": []map[string]interface{}{
+				{
+					"name":       "graphql-api.log",
+					"path":       "/var/log/graphql-api.log",
+					"size":       2048,
+					"modifiedAt": "2026-05-29T12:00:00.000Z",
+				},
+			},
+		},
+	}
+}
+
+func mockLogFileResponse() map[string]interface{} {
+	startLine := 1
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"logFile": map[string]interface{}{
+				"path":       "/var/log/graphql-api.log",
+				"content":    "line 1\nline 2\n",
+				"totalLines": 2,
+				"startLine":  startLine,
+			},
+		},
+	}
+}
+
+func mockSettingsResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"isSSOEnabled": true,
+			"settings": map[string]interface{}{
+				"id": "settings-id",
+				"api": map[string]interface{}{
+					"version":      "4.0.0",
+					"extraOrigins": []string{"https://example.test"},
+					"sandbox":      true,
+					"ssoSubIds":    []string{"user-1"},
+					"plugins":      []string{"connect"},
+				},
+				"sso": map[string]interface{}{
+					"id": "sso-id",
+					"oidcProviders": []map[string]interface{}{
+						{
+							"id":            "oidc-1",
+							"name":          "Google",
+							"clientId":      "client-id",
+							"issuer":        "https://accounts.google.com",
+							"scopes":        []string{"openid", "email"},
+							"buttonText":    "Sign in",
+							"buttonVariant": "default",
+						},
+					},
+				},
+				"unified": map[string]interface{}{
+					"values": map[string]interface{}{"api": map[string]interface{}{"sandbox": true}},
+				},
+			},
+		},
+	}
+}
+
+func mockOIDCProvidersResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"isSSOEnabled": true,
+			"oidcProviders": []map[string]interface{}{
+				{
+					"id":            "oidc-1",
+					"name":          "Google",
+					"clientId":      "client-id",
+					"issuer":        "https://accounts.google.com",
+					"scopes":        []string{"openid", "email"},
+					"buttonText":    "Sign in",
+					"buttonVariant": "default",
+				},
+			},
+			"publicOidcProviders": []map[string]interface{}{
+				{
+					"id":            "public-1",
+					"name":          "Google",
+					"buttonText":    "Sign in",
+					"buttonIcon":    "",
+					"buttonVariant": "default",
+					"buttonStyle":   "",
+				},
+			},
+		},
+	}
+}
+
+func mockOIDCConfigurationResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"oidcConfiguration": map[string]interface{}{
+				"defaultAllowedOrigins": []string{"https://tower.local"},
+				"providers": []map[string]interface{}{
+					{
+						"id":            "oidc-1",
+						"name":          "Google",
+						"clientId":      "client-id",
+						"issuer":        "https://accounts.google.com",
+						"scopes":        []string{"openid", "email"},
+						"buttonText":    "Sign in",
+						"buttonVariant": "default",
+					},
+				},
+			},
+		},
+	}
+}
+
+func mockValidateOIDCSessionResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"validateOidcSession": map[string]interface{}{
+				"valid":    true,
+				"username": "jonathan",
 			},
 		},
 	}

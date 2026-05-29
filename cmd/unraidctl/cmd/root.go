@@ -23,6 +23,12 @@ var (
 	out       *output.Formatter
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
+
 var rootCmd = &cobra.Command{
 	Use:   "unraidctl",
 	Short: "CLI tool to interact with the Unraid API",
@@ -91,6 +97,10 @@ func init() {
 	rootCmd.AddCommand(vmCmd)
 	rootCmd.AddCommand(shareCmd)
 	rootCmd.AddCommand(notificationCmd)
+	rootCmd.AddCommand(apiKeyCmd)
+	rootCmd.AddCommand(logCmd)
+	rootCmd.AddCommand(settingsCmd)
+	rootCmd.AddCommand(ssoCmd)
 	rootCmd.AddCommand(configureCmd)
 }
 
@@ -98,6 +108,8 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("unraidctl version 0.1.0")
+		fmt.Printf("unraidctl version %s\n", version)
+		fmt.Printf("commit: %s\n", commit)
+		fmt.Printf("built:  %s\n", date)
 	},
 }

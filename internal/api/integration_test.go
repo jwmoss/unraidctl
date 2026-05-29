@@ -80,6 +80,27 @@ func TestIntegration_ArrayStatusQuery(t *testing.T) {
 	}
 }
 
+func TestIntegration_ArraySetStateMutation(t *testing.T) {
+	server := MockUnraidAPI()
+	defer server.Close()
+
+	c := client.New(server.URL, "test-api-key")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var resp ArrayMutationResponse
+	err := c.Query(ctx, ArraySetStateMutation, map[string]interface{}{
+		"input": map[string]interface{}{"desiredState": "START"},
+	}, &resp)
+	if err != nil {
+		t.Fatalf("ArraySetStateMutation failed: %v", err)
+	}
+
+	if resp.Array.SetState.State != "STARTED" {
+		t.Errorf("expected state STARTED, got %s", resp.Array.SetState.State)
+	}
+}
+
 // TestIntegration_DockerContainersQuery tests the docker containers query against the mock Unraid API
 func TestIntegration_DockerContainersQuery(t *testing.T) {
 	server := MockUnraidAPI()
@@ -120,6 +141,59 @@ func TestIntegration_DockerContainersQuery(t *testing.T) {
 	}
 	if radarr.AutoStart {
 		t.Error("expected autoStart false for radarr")
+	}
+}
+
+func TestIntegration_DockerLogsQuery(t *testing.T) {
+	server := MockUnraidAPI()
+	defer server.Close()
+
+	c := client.New(server.URL, "test-api-key")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var resp DockerLogsResponse
+	err := c.Query(ctx, DockerLogsQuery, map[string]interface{}{
+		"id":   "abc123def456",
+		"tail": 10,
+	}, &resp)
+	if err != nil {
+		t.Fatalf("DockerLogsQuery failed: %v", err)
+	}
+
+	if resp.Docker.Logs.ContainerID != "abc123def456" {
+		t.Errorf("expected container id abc123def456, got %s", resp.Docker.Logs.ContainerID)
+	}
+	if len(resp.Docker.Logs.Lines) != 2 {
+		t.Fatalf("expected 2 log lines, got %d", len(resp.Docker.Logs.Lines))
+	}
+	if resp.Docker.Logs.Lines[0].Message != "server started" {
+		t.Errorf("expected first log message 'server started', got %s", resp.Docker.Logs.Lines[0].Message)
+	}
+}
+
+func TestIntegration_APIKeysQuery(t *testing.T) {
+	server := MockUnraidAPI()
+	defer server.Close()
+
+	c := client.New(server.URL, "test-api-key")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var resp APIKeysResponse
+	err := c.Query(ctx, APIKeysQuery, nil, &resp)
+	if err != nil {
+		t.Fatalf("APIKeysQuery failed: %v", err)
+	}
+
+	if len(resp.APIKeys) != 1 {
+		t.Fatalf("expected 1 API key, got %d", len(resp.APIKeys))
+	}
+	if resp.APIKeys[0].Name != "automation" {
+		t.Errorf("expected key name automation, got %s", resp.APIKeys[0].Name)
+	}
+	if resp.APIKeys[0].Permissions[0].Resource != "INFO" {
+		t.Errorf("expected permission resource INFO, got %s", resp.APIKeys[0].Permissions[0].Resource)
 	}
 }
 
@@ -222,6 +296,53 @@ func TestIntegration_VMsQuery(t *testing.T) {
 	ubuntu := resp.VMs.Domain[1]
 	if ubuntu.State != "shutoff" {
 		t.Errorf("expected state shutoff, got %s", ubuntu.State)
+	}
+}
+
+func TestIntegration_LogFilesQuery(t *testing.T) {
+	server := MockUnraidAPI()
+	defer server.Close()
+
+	c := client.New(server.URL, "test-api-key")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var resp LogFilesResponse
+	err := c.Query(ctx, LogFilesQuery, nil, &resp)
+	if err != nil {
+		t.Fatalf("LogFilesQuery failed: %v", err)
+	}
+
+	if len(resp.LogFiles) != 1 {
+		t.Fatalf("expected 1 log file, got %d", len(resp.LogFiles))
+	}
+	if resp.LogFiles[0].Path != "/var/log/graphql-api.log" {
+		t.Errorf("expected graphql API log path, got %s", resp.LogFiles[0].Path)
+	}
+}
+
+func TestIntegration_SettingsQuery(t *testing.T) {
+	server := MockUnraidAPI()
+	defer server.Close()
+
+	c := client.New(server.URL, "test-api-key")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var resp SettingsResponse
+	err := c.Query(ctx, SettingsQuery, nil, &resp)
+	if err != nil {
+		t.Fatalf("SettingsQuery failed: %v", err)
+	}
+
+	if !resp.IsSSOEnabled {
+		t.Error("expected SSO to be enabled")
+	}
+	if resp.Settings.API.Version != "4.0.0" {
+		t.Errorf("expected API version 4.0.0, got %s", resp.Settings.API.Version)
+	}
+	if len(resp.Settings.SSO.OIDCProviders) != 1 {
+		t.Fatalf("expected 1 OIDC provider, got %d", len(resp.Settings.SSO.OIDCProviders))
 	}
 }
 

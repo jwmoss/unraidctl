@@ -1,8 +1,9 @@
 .PHONY: build clean test install lint
 
 BINARY_NAME=unraidctl
-VERSION?=0.1.0
-LDFLAGS=-ldflags "-X main.version=$(VERSION)"
+VERSION?=1.1.0
+VERSION_PACKAGE=github.com/jwmoss/unraidctl/cmd/unraidctl/cmd
+LDFLAGS=-ldflags "-X $(VERSION_PACKAGE).version=$(VERSION)"
 
 build:
 	go build $(LDFLAGS) -o $(BINARY_NAME) ./cmd/unraidctl
