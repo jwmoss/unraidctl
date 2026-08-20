@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-19
+
+### Added
+
+- Network interface metrics from Unraid API 4.35 and later.
+- Docker container restart support from Unraid API 4.36 and later.
+
+### Changed
+
+- Documented API version checks and the Unraid Connect plugin update path.
+
 ## [1.1.0] - 2026-05-29
 
 ### Added
@@ -71,5 +82,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tested against Unraid 7.2
 - Cross-platform support (macOS, Linux, Windows)
 
+[1.2.0]: https://github.com/jwmoss/unraidctl/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/jwmoss/unraidctl/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jwmoss/unraidctl/releases/tag/v1.0.0

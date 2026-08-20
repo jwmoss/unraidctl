@@ -137,6 +137,7 @@ type DockerMutationResponse struct {
 	Docker struct {
 		Start                        DockerContainer   `json:"start"`
 		Stop                         DockerContainer   `json:"stop"`
+		Restart                      DockerContainer   `json:"restart"`
 		Pause                        DockerContainer   `json:"pause"`
 		Unpause                      DockerContainer   `json:"unpause"`
 		UpdateContainer              DockerContainer   `json:"updateContainer"`
@@ -144,6 +145,30 @@ type DockerMutationResponse struct {
 		RemoveContainer              bool              `json:"removeContainer"`
 		UpdateAutostartConfiguration bool              `json:"updateAutostartConfiguration"`
 	} `json:"docker"`
+}
+
+type MetricsResponse struct {
+	Metrics struct {
+		Network []NetworkMetrics `json:"network"`
+	} `json:"metrics"`
+}
+
+type NetworkMetrics struct {
+	ID                 string   `json:"id"`
+	Name               string   `json:"name"`
+	Operstate          string   `json:"operstate"`
+	BytesReceived      int64    `json:"bytesReceived"`
+	BytesSent          int64    `json:"bytesSent"`
+	PacketsReceived    int64    `json:"packetsReceived"`
+	PacketsSent        int64    `json:"packetsSent"`
+	ReceiveErrors      int64    `json:"receiveErrors"`
+	TransmitErrors     int64    `json:"transmitErrors"`
+	ReceiveDropped     int64    `json:"receiveDropped"`
+	TransmitDropped    int64    `json:"transmitDropped"`
+	RxSec              float64  `json:"rxSec"`
+	TxSec              float64  `json:"txSec"`
+	UtilizationPercent *float64 `json:"utilizationPercent"`
+	LastUpdated        string   `json:"lastUpdated"`
 }
 
 type SharesResponse struct {

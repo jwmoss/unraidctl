@@ -13,7 +13,8 @@ A command-line tool to interact with the [Unraid API](https://docs.unraid.net/AP
 - **System Information** - View hostname, OS, CPU, and uptime
 - **Array Management** - Check array status, capacity, and disk health
 - **Array Operations** - Start/stop the array and manage disk assignment/mount state
-- **Docker Containers** - List, inspect, start, stop, pause, update, remove, and view logs
+- **Docker Containers** - List, inspect, start, stop, restart, pause, update, remove, and view logs
+- **Network Metrics** - View traffic, throughput, state, errors, drops, and link utilization
 - **Shares** - List user shares with usage statistics
 - **Notifications** - View unread and all notifications
 - **Virtual Machines** - List VMs (when enabled)
@@ -26,6 +27,24 @@ A command-line tool to interact with the [Unraid API](https://docs.unraid.net/AP
 
 - Unraid 7.2+ (API built-in) or Unraid with the [Unraid Connect](https://docs.unraid.net/unraid-connect/overview-and-setup/) plugin
 - An API key (create at **Settings → Management Access → API Keys**)
+
+## API compatibility
+
+Each Unraid OS release includes a specific API version. The Unraid Connect plugin can provide
+newer API features before they become part of an Unraid OS release.
+
+Run this command after an OS or plugin update:
+
+```bash
+unraidctl settings show
+```
+
+The `API version` row shows the active server API version.
+
+| Command | Minimum API version |
+|---------|---------------------|
+| `unraidctl metrics network` | 4.35 |
+| `unraidctl docker restart <container-id>` | 4.36 |
 
 ## Installation
 
@@ -98,12 +117,16 @@ unraidctl docker inspect <container-id>
 unraidctl docker logs <container-id> --tail 200
 unraidctl docker start <container-id>
 unraidctl docker stop <container-id>
+unraidctl docker restart <container-id> # Requires Unraid API 4.36+
 unraidctl docker pause <container-id>
 unraidctl docker unpause <container-id>
 unraidctl docker update <container-id>
 unraidctl docker update-all
 unraidctl docker autostart <container-id> --enable --wait 10
 unraidctl docker remove <container-id> --with-image
+
+# Network metrics (requires Unraid API 4.35+)
+unraidctl metrics network
 
 # Virtual machines
 unraidctl vm list

@@ -44,6 +44,10 @@ func handleGraphQL(w http.ResponseWriter, r *http.Request) {
 
 	var response interface{}
 	switch {
+	case strings.Contains(req.Query, "metrics") && strings.Contains(req.Query, "network"):
+		response = mockNetworkMetricsResponse()
+	case strings.Contains(req.Query, "restart"):
+		response = mockDockerRestartResponse()
 	case strings.Contains(req.Query, "apiKeyPossibleRoles"):
 		response = mockAPIKeyMetadataResponse()
 	case strings.Contains(req.Query, "apiKeys"):
@@ -86,6 +90,51 @@ func handleGraphQL(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_ = json.NewEncoder(w).Encode(response)
+}
+
+func mockNetworkMetricsResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"metrics": map[string]interface{}{
+				"network": []map[string]interface{}{
+					{
+						"id":                 "metrics/network/eth0",
+						"name":               "eth0",
+						"operstate":          "up",
+						"bytesReceived":      1024,
+						"bytesSent":          2048,
+						"packetsReceived":    10,
+						"packetsSent":        20,
+						"receiveErrors":      1,
+						"transmitErrors":     2,
+						"receiveDropped":     3,
+						"transmitDropped":    4,
+						"rxSec":              100.5,
+						"txSec":              200.5,
+						"utilizationPercent": 0.0024,
+						"lastUpdated":        "2026-08-19T12:00:00.000Z",
+					},
+				},
+			},
+		},
+	}
+}
+
+func mockDockerRestartResponse() map[string]interface{} {
+	return map[string]interface{}{
+		"data": map[string]interface{}{
+			"docker": map[string]interface{}{
+				"restart": map[string]interface{}{
+					"id":        "abc123def456",
+					"names":     []string{"/plex"},
+					"state":     "RUNNING",
+					"status":    "Up 1 second",
+					"image":     "linuxserver/plex:latest",
+					"autoStart": true,
+				},
+			},
+		},
+	}
 }
 
 func mockInfoResponse() map[string]interface{} {
