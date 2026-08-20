@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Network interface metrics from Unraid API 4.35 and later.
 - Docker container restart support from Unraid API 4.36 and later.
 
+### Changed
+
+- Documented API version checks and the Unraid Connect plugin update path.
+
 ## [1.1.0] - 2026-05-29
 
 ### Added

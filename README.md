@@ -28,6 +28,24 @@ A command-line tool to interact with the [Unraid API](https://docs.unraid.net/AP
 - Unraid 7.2+ (API built-in) or Unraid with the [Unraid Connect](https://docs.unraid.net/unraid-connect/overview-and-setup/) plugin
 - An API key (create at **Settings → Management Access → API Keys**)
 
+## API compatibility
+
+Each Unraid OS release includes a specific API version. The Unraid Connect plugin can provide
+newer API features before they become part of an Unraid OS release.
+
+Run this command after an OS or plugin update:
+
+```bash
+unraidctl settings show
+```
+
+The `API version` row shows the active server API version.
+
+| Command | Minimum API version |
+|---------|---------------------|
+| `unraidctl metrics network` | 4.35 |
+| `unraidctl docker restart <container-id>` | 4.36 |
+
 ## Installation
 
 ### From Release (recommended)
