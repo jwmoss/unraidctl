@@ -94,6 +94,7 @@ func init() {
 	rootCmd.AddCommand(infoCmd)
 	rootCmd.AddCommand(arrayCmd)
 	rootCmd.AddCommand(dockerCmd)
+	rootCmd.AddCommand(metricsCmd)
 	rootCmd.AddCommand(vmCmd)
 	rootCmd.AddCommand(shareCmd)
 	rootCmd.AddCommand(notificationCmd)

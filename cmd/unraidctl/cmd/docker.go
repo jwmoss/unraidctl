@@ -109,6 +109,7 @@ var dockerLogsCmd = &cobra.Command{
 
 var dockerStartCmd = dockerActionCommand("start", "Start a Docker container", api.DockerStartMutation)
 var dockerStopCmd = dockerActionCommand("stop", "Stop a Docker container", api.DockerStopMutation)
+var dockerRestartCmd = dockerActionCommand("restart", "Restart a Docker container", api.DockerRestartMutation)
 var dockerPauseCmd = dockerActionCommand("pause", "Pause a Docker container", api.DockerPauseMutation)
 var dockerUnpauseCmd = dockerActionCommand("unpause", "Unpause a Docker container", api.DockerUnpauseMutation)
 var dockerUpdateCmd = dockerActionCommand("update", "Update a Docker container image", api.DockerUpdateMutation)
@@ -223,6 +224,8 @@ func dockerActionContainer(action string, resp api.DockerMutationResponse) api.D
 		return resp.Docker.Start
 	case "stop":
 		return resp.Docker.Stop
+	case "restart":
+		return resp.Docker.Restart
 	case "pause":
 		return resp.Docker.Pause
 	case "unpause":
@@ -341,6 +344,7 @@ func init() {
 	dockerCmd.AddCommand(dockerLogsCmd)
 	dockerCmd.AddCommand(dockerStartCmd)
 	dockerCmd.AddCommand(dockerStopCmd)
+	dockerCmd.AddCommand(dockerRestartCmd)
 	dockerCmd.AddCommand(dockerPauseCmd)
 	dockerCmd.AddCommand(dockerUnpauseCmd)
 	dockerCmd.AddCommand(dockerUpdateCmd)

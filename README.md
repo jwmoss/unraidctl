@@ -13,7 +13,8 @@ A command-line tool to interact with the [Unraid API](https://docs.unraid.net/AP
 - **System Information** - View hostname, OS, CPU, and uptime
 - **Array Management** - Check array status, capacity, and disk health
 - **Array Operations** - Start/stop the array and manage disk assignment/mount state
-- **Docker Containers** - List, inspect, start, stop, pause, update, remove, and view logs
+- **Docker Containers** - List, inspect, start, stop, restart, pause, update, remove, and view logs
+- **Network Metrics** - View traffic, throughput, state, errors, drops, and link utilization
 - **Shares** - List user shares with usage statistics
 - **Notifications** - View unread and all notifications
 - **Virtual Machines** - List VMs (when enabled)
@@ -98,12 +99,16 @@ unraidctl docker inspect <container-id>
 unraidctl docker logs <container-id> --tail 200
 unraidctl docker start <container-id>
 unraidctl docker stop <container-id>
+unraidctl docker restart <container-id> # Requires Unraid API 4.36+
 unraidctl docker pause <container-id>
 unraidctl docker unpause <container-id>
 unraidctl docker update <container-id>
 unraidctl docker update-all
 unraidctl docker autostart <container-id> --enable --wait 10
 unraidctl docker remove <container-id> --with-image
+
+# Network metrics (requires Unraid API 4.35+)
+unraidctl metrics network
 
 # Virtual machines
 unraidctl vm list

@@ -172,6 +172,59 @@ func TestIntegration_DockerLogsQuery(t *testing.T) {
 	}
 }
 
+func TestIntegration_DockerRestartMutation(t *testing.T) {
+	server := MockUnraidAPI()
+	defer server.Close()
+
+	c := client.New(server.URL, "test-api-key")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var resp DockerMutationResponse
+	err := c.Query(ctx, DockerRestartMutation, map[string]interface{}{
+		"id": "abc123def456",
+	}, &resp)
+	if err != nil {
+		t.Fatalf("DockerRestartMutation failed: %v", err)
+	}
+
+	if resp.Docker.Restart.State != "RUNNING" {
+		t.Errorf("expected state RUNNING, got %s", resp.Docker.Restart.State)
+	}
+	if resp.Docker.Restart.Status != "Up 1 second" {
+		t.Errorf("expected status Up 1 second, got %s", resp.Docker.Restart.Status)
+	}
+}
+
+func TestIntegration_NetworkMetricsQuery(t *testing.T) {
+	server := MockUnraidAPI()
+	defer server.Close()
+
+	c := client.New(server.URL, "test-api-key")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var resp MetricsResponse
+	err := c.Query(ctx, NetworkMetricsQuery, nil, &resp)
+	if err != nil {
+		t.Fatalf("NetworkMetricsQuery failed: %v", err)
+	}
+
+	if len(resp.Metrics.Network) != 1 {
+		t.Fatalf("expected 1 network interface, got %d", len(resp.Metrics.Network))
+	}
+	metrics := resp.Metrics.Network[0]
+	if metrics.Name != "eth0" {
+		t.Errorf("expected interface eth0, got %s", metrics.Name)
+	}
+	if metrics.BytesReceived != 1024 {
+		t.Errorf("expected 1024 received bytes, got %d", metrics.BytesReceived)
+	}
+	if metrics.UtilizationPercent == nil || *metrics.UtilizationPercent != 0.0024 {
+		t.Errorf("expected utilization 0.0024, got %v", metrics.UtilizationPercent)
+	}
+}
+
 func TestIntegration_APIKeysQuery(t *testing.T) {
 	server := MockUnraidAPI()
 	defer server.Close()

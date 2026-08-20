@@ -283,6 +283,21 @@ mutation($id: PrefixedID!) {
 }
 `
 
+const DockerRestartMutation = `
+mutation($id: PrefixedID!) {
+	docker {
+		restart(id: $id) {
+			id
+			names
+			state
+			status
+			image
+			autoStart
+		}
+	}
+}
+`
+
 const DockerPauseMutation = `
 mutation($id: PrefixedID!) {
 	docker {
@@ -293,6 +308,30 @@ mutation($id: PrefixedID!) {
 			status
 			image
 			autoStart
+		}
+	}
+}
+`
+
+const NetworkMetricsQuery = `
+query {
+	metrics {
+		network {
+			id
+			name
+			operstate
+			bytesReceived
+			bytesSent
+			packetsReceived
+			packetsSent
+			receiveErrors
+			transmitErrors
+			receiveDropped
+			transmitDropped
+			rxSec
+			txSec
+			utilizationPercent
+			lastUpdated
 		}
 	}
 }
