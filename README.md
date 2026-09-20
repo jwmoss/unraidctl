@@ -10,13 +10,16 @@ A command-line tool to interact with the [Unraid API](https://docs.unraid.net/AP
 
 ## Features
 
-- **System Information** - View hostname, OS, CPU, and uptime
+- **System Information** - View exact Unraid, API, and kernel versions, CPU, and uptime
+- **Health** - Check array devices, parity history, raw UPS alarms, containers, sensors, and unread alerts
+- **UPS and Disks** - View UPS status, physical disks, and basic SMART status
+- **Parity** - View current parity status and complete check history
 - **Array Management** - Check array status, capacity, and disk health
 - **Array Operations** - Start/stop the array and manage disk assignment/mount state
 - **Docker Containers** - List, inspect, start, stop, restart, pause, update, remove, and view logs
-- **Network Metrics** - View traffic, throughput, state, errors, drops, and link utilization
-- **Shares** - List user shares with usage statistics
-- **Notifications** - View unread and all notifications
+- **System Metrics** - View CPU, memory, temperature, network traffic, errors, drops, and link utilization
+- **Shares** - List user shares and their available storage capacity
+- **Notifications** - List every unread/archive notification and deduplicated warnings/alerts
 - **Virtual Machines** - List VMs (when enabled)
 - **API Keys** - List, create, update, delete, and manage roles/permissions
 - **Logs** - List and read Unraid API log files
@@ -46,6 +49,31 @@ The `API version` row shows the active server API version.
 | `unraidctl metrics network` | 4.35 |
 | `unraidctl docker restart <container-id>` | 4.36 |
 
+The contract tests cover API **4.37.3** and **4.37.4**. Older APIs can require a Connect plugin update.
+The health and reporting commands require read access to their resources. On API 4.37.4, UPS access requires `CONFIG:READ_ANY`.
+Feature flags can restrict Docker fields even when the generated schema includes them.
+
+API 4.37.4 removes direct disk removal. `array remove-disk` now returns guidance without a server request.
+Use the Unraid WebGUI storage workflow for disk removal.
+
+## Health and capacity interpretation
+
+`health` returns available results even if one API resource fails. An incomplete report has status `INCOMPLETE` and exits 1.
+A report with alarms or warnings has status `ATTENTION` and also exits 1. JSON output remains valid in both cases.
+
+UPS output uses the raw status. It does not trust API 4.37.x `battery.health`, which is hard-coded to `Good`.
+The API can supply defaults for absent UPS measurements. An online status does not independently verify battery condition.
+
+API health checks do not include detailed SMART attributes, Btrfs error counters, scrub results, or kernel I/O errors.
+Use separate host diagnostics for those checks. A basic SMART pass does not establish full disk health.
+
+Array and share capacity use decimal KB from the API and display decimal TB/GB.
+Raw array-device sizes use KiB and display TiB. Byte-based memory, disk, and network values use explicit binary units.
+Share capacity describes its storage backing, not measured folder contents. Do not sum share rows.
+
+`notification list` paginates all unread items. `--all` adds all archived items. Neither command silently truncates results.
+`notification alerts` uses the API's deduplicated warnings and alerts. These commands do not dismiss notifications.
+
 ## Installation
 
 ### From Release (recommended)
@@ -55,7 +83,7 @@ Download the latest binary from [Releases](https://github.com/jwmoss/unraidctl/r
 ### Using Go
 
 ```bash
-go install github.com/jwmoss/unraidctl@latest
+go install github.com/jwmoss/unraidctl/cmd/unraidctl@latest
 ```
 
 ### Build from source
@@ -97,15 +125,20 @@ Flags > Environment variables > Config file
 ## Usage
 
 ```bash
-# Show system information
+# Show exact component versions and health
 unraidctl info
+unraidctl health
+unraidctl health --json
+unraidctl ups status
+unraidctl disk list
+unraidctl parity status
+unraidctl parity history
 
 # Array management
 unraidctl array status
 unraidctl array start
 unraidctl array stop
 unraidctl array add-disk <disk-id> --slot 1
-unraidctl array remove-disk <disk-id>
 unraidctl array mount-disk <disk-id>
 unraidctl array unmount-disk <disk-id>
 unraidctl array clear-stats <disk-id>
@@ -125,7 +158,10 @@ unraidctl docker update-all
 unraidctl docker autostart <container-id> --enable --wait 10
 unraidctl docker remove <container-id> --with-image
 
-# Network metrics (requires Unraid API 4.35+)
+# System metrics
+unraidctl metrics cpu
+unraidctl metrics memory
+unraidctl metrics temperature
 unraidctl metrics network
 
 # Virtual machines
@@ -137,6 +173,7 @@ unraidctl share list
 # Notifications
 unraidctl notification list
 unraidctl notification list --all
+unraidctl notification alerts
 
 # API keys
 unraidctl apikey list
@@ -183,10 +220,7 @@ unraidctl docker list --json | jq '.[].names[0]'
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | General error |
-| 2 | Invalid usage / bad arguments |
-| 3 | Authentication error |
-| 4 | Connection error |
+| 1 | Command error, or health report with alerts, warnings, or incomplete data |
 
 ## Contributing
 
@@ -194,4 +228,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT - see [LICENSE](LICENSE) for details.
+The CLI uses the MIT license. See [LICENSE](LICENSE).
+The unmodified upstream test schemas retain their separate GPL-2.0-or-later license. See [fixture notice](internal/api/testdata/README.md).

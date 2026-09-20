@@ -68,5 +68,62 @@ func formatRate(bytesPerSecond float64) string {
 }
 
 func init() {
-	metricsCmd.AddCommand(networkMetricsCmd)
+	metricsCmd.AddCommand(networkMetricsCmd, cpuMetricsCmd, memoryMetricsCmd, temperatureMetricsCmd)
+}
+
+var cpuMetricsCmd = &cobra.Command{
+	Use: "cpu", Short: "View CPU utilization", Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var resp api.MetricsResponse
+		if err := queryWithTimeout(api.CPUMetricsQuery, nil, &resp); err != nil {
+			return err
+		}
+		if resp.Metrics.CPU == nil {
+			return fmt.Errorf("CPU metrics are unavailable")
+		}
+		if out.IsJSON() {
+			return out.JSON(resp.Metrics.CPU)
+		}
+		out.Print("CPU utilization: %.1f%%\n", resp.Metrics.CPU.PercentTotal)
+		return nil
+	},
+}
+var memoryMetricsCmd = &cobra.Command{
+	Use: "memory", Short: "View active and available memory", Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var resp api.MetricsResponse
+		if err := queryWithTimeout(api.MemoryMetricsQuery, nil, &resp); err != nil {
+			return err
+		}
+		if resp.Metrics.Memory == nil {
+			return fmt.Errorf("memory metrics are unavailable")
+		}
+		if out.IsJSON() {
+			return out.JSON(resp.Metrics.Memory)
+		}
+		memory := resp.Metrics.Memory
+		out.Table([]string{"TOTAL", "ACTIVE", "AVAILABLE", "USED"}, [][]string{{formatSizeBytes(memory.Total), formatSizeBytes(memory.Active), formatSizeBytes(memory.Available), fmt.Sprintf("%.1f%%", memory.PercentTotal)}})
+		return nil
+	},
+}
+var temperatureMetricsCmd = &cobra.Command{
+	Use: "temperature", Short: "View temperature sensors and their status", Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var resp api.MetricsResponse
+		if err := queryWithTimeout(api.TemperatureMetricsQuery, nil, &resp); err != nil {
+			return err
+		}
+		if resp.Metrics.Temperature == nil {
+			return fmt.Errorf("temperature metrics are unavailable")
+		}
+		if out.IsJSON() {
+			return out.JSON(resp.Metrics.Temperature)
+		}
+		rows := make([][]string, 0, len(resp.Metrics.Temperature.Sensors))
+		for _, sensor := range resp.Metrics.Temperature.Sensors {
+			rows = append(rows, []string{sensor.Name, sensor.Type, fmt.Sprintf("%.1f %s", sensor.Current.Value, sensor.Current.Unit), sensor.Current.Status})
+		}
+		out.Table([]string{"SENSOR", "TYPE", "TEMPERATURE", "STATUS"}, rows)
+		return nil
+	},
 }

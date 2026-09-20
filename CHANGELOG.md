@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-09-20
+
+### Added
+
+- API health reports with raw UPS alarms, array devices, parity history, container status, and unread alert counts.
+- UPS status, physical disk inventory, parity status/history, and CPU, memory, and temperature metrics.
+- Deduplicated notification alerts and complete pagination for unread and archived notifications.
+- Offline validation of every GraphQL operation against the released API 4.37.3 and 4.37.4 schemas.
+
+### Fixed
+
+- Replace the invalid notification `ALL` enum with separate unread and archive requests.
+- Include parity, cache, and boot devices in array status.
+- Correct decimal capacity conversion and binary unit labels; identify share capacity as storage capacity, not folder usage.
+- Report exact Unraid, API, and kernel versions.
+- Explain when VM Manager is unavailable without hiding other API errors.
+- Parse GraphQL fields in API mocks instead of matching query substrings.
+- Correct the Go installation path and document the implemented exit codes.
+
+### Changed
+
+- Retire direct disk removal. The command now directs users to the Unraid WebGUI without a server request.
+- Health reports exit with status 1 for alerts, warnings, or incomplete data. JSON still contains the available results.
+- Ignore the upstream hard-coded UPS battery health value. Preserve raw UPS status and explain diagnostic limits.
+
 ## [1.2.0] - 2026-08-19
 
 ### Added
@@ -82,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tested against Unraid 7.2
 - Cross-platform support (macOS, Linux, Windows)
 
+[1.3.0]: https://github.com/jwmoss/unraidctl/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/jwmoss/unraidctl/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/jwmoss/unraidctl/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/jwmoss/unraidctl/releases/tag/v1.0.0

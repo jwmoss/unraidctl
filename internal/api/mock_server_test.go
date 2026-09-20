@@ -2,9 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/vektah/gqlparser/v2/parser"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 )
 
 // MockUnraidAPI creates a mock HTTP server that simulates the Unraid GraphQL API
@@ -39,48 +40,69 @@ func handleGraphQL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Route based on query content
+	document, err := parser.ParseQuery(&ast.Source{Input: req.Query})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fields := make(map[string]bool)
+	for _, operation := range document.Operations {
+		for _, selection := range operation.SelectionSet {
+			field, ok := selection.(*ast.Field)
+			if !ok {
+				continue
+			}
+			fields[field.Name] = true
+			for _, child := range field.SelectionSet {
+				if nested, ok := child.(*ast.Field); ok {
+					fields[field.Name+"."+nested.Name] = true
+				}
+			}
+		}
+	}
+
+	// Route by parsed fields; notification counts named info are not system queries.
 	w.Header().Set("Content-Type", "application/json")
 
 	var response interface{}
 	switch {
-	case strings.Contains(req.Query, "metrics") && strings.Contains(req.Query, "network"):
+	case fields["metrics.network"]:
 		response = mockNetworkMetricsResponse()
-	case strings.Contains(req.Query, "restart"):
+	case fields["docker.restart"]:
 		response = mockDockerRestartResponse()
-	case strings.Contains(req.Query, "apiKeyPossibleRoles"):
+	case fields["apiKeyPossibleRoles"]:
 		response = mockAPIKeyMetadataResponse()
-	case strings.Contains(req.Query, "apiKeys"):
+	case fields["apiKeys"]:
 		response = mockAPIKeysResponse()
-	case strings.Contains(req.Query, "apiKey") && strings.Contains(req.Query, "create"):
+	case fields["apiKey.create"]:
 		response = mockCreateAPIKeyResponse()
-	case strings.Contains(req.Query, "setState"):
+	case fields["array.setState"]:
 		response = mockArraySetStateResponse()
-	case strings.Contains(req.Query, "logs("):
+	case fields["docker.logs"]:
 		response = mockDockerLogsResponse()
-	case strings.Contains(req.Query, "logFiles"):
+	case fields["logFiles"]:
 		response = mockLogFilesResponse()
-	case strings.Contains(req.Query, "logFile("):
+	case fields["logFile"]:
 		response = mockLogFileResponse()
-	case strings.Contains(req.Query, "settings"):
+	case fields["settings"]:
 		response = mockSettingsResponse()
-	case strings.Contains(req.Query, "validateOidcSession"):
+	case fields["validateOidcSession"]:
 		response = mockValidateOIDCSessionResponse()
-	case strings.Contains(req.Query, "oidcConfiguration"):
+	case fields["oidcConfiguration"]:
 		response = mockOIDCConfigurationResponse()
-	case strings.Contains(req.Query, "oidcProviders") || strings.Contains(req.Query, "publicOidcProviders"):
+	case fields["oidcProviders"] || fields["publicOidcProviders"]:
 		response = mockOIDCProvidersResponse()
-	case strings.Contains(req.Query, "info"):
+	case fields["info"]:
 		response = mockInfoResponse()
-	case strings.Contains(req.Query, "array"):
+	case fields["array"]:
 		response = mockArrayResponse()
-	case strings.Contains(req.Query, "docker"):
+	case fields["docker"]:
 		response = mockDockerResponse()
-	case strings.Contains(req.Query, "shares"):
+	case fields["shares"]:
 		response = mockSharesResponse()
-	case strings.Contains(req.Query, "notifications"):
+	case fields["notifications"]:
 		response = mockNotificationsResponse()
-	case strings.Contains(req.Query, "vms"):
+	case fields["vms"]:
 		response = mockVMsResponse()
 	default:
 		response = map[string]interface{}{
