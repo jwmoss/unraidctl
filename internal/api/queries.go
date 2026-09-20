@@ -6,6 +6,7 @@ package api
 const InfoQuery = `
 query {
 	info {
+		versions { core { unraid api kernel } }
 		os {
 			platform
 			distro
@@ -25,25 +26,15 @@ query {
 
 const ArrayStatusQuery = `
 query {
-	array {
-		state
-		capacity {
-			kilobytes {
-				free
-				used
-				total
-			}
-		}
-		disks {
-			id
-			name
-			device
-			size
-			status
-			temp
-			type
-		}
-	}
+ array {
+  state
+  capacity { kilobytes { free used total } }
+  disks { id name device size status temp type numErrors }
+  parities { id name device size status temp type numErrors }
+  caches { id name device size status temp type numErrors }
+  boot { id name device size status temp type numErrors }
+  parityCheckStatus { date duration status errors progress running paused correcting }
+ }
 }
 `
 
@@ -77,25 +68,6 @@ const ArrayAddDiskMutation = `
 mutation($input: ArrayDiskInput!) {
 	array {
 		addDiskToArray(input: $input) {
-			state
-			disks {
-				id
-				name
-				device
-				size
-				status
-				temp
-				type
-			}
-		}
-	}
-}
-`
-
-const ArrayRemoveDiskMutation = `
-mutation($input: ArrayDiskInput!) {
-	array {
-		removeDiskFromArray(input: $input) {
 			state
 			disks {
 				id
@@ -500,33 +472,20 @@ query {
 `
 
 const NotificationsQuery = `
-query {
-	notifications {
-		overview {
-			unread {
-				total
-			}
-		}
-		list(filter: { type: UNREAD, offset: 0, limit: 50 }) {
-			id
-			subject
-			importance
-			timestamp
-		}
-	}
+query($filter: NotificationFilter!) {
+ notifications {
+  overview { unread { total info warning alert } archive { total info warning alert } }
+  list(filter: $filter) { id subject importance timestamp type }
+ }
 }
 `
 
-const AllNotificationsQuery = `
+const NotificationAlertsQuery = `
 query {
-	notifications {
-		list(filter: { type: ALL, offset: 0, limit: 50 }) {
-			id
-			subject
-			importance
-			timestamp
-		}
-	}
+ notifications {
+  overview { unread { total info warning alert } archive { total info warning alert } }
+  warningsAndAlerts { id subject importance timestamp type }
+ }
 }
 `
 
@@ -663,4 +622,58 @@ query {
 		}
 	}
 }
+`
+
+const UPSQuery = `
+query {
+ upsDevices {
+  name model status
+  battery { chargeLevel estimatedRuntime }
+  power { loadPercentage currentPower }
+ }
+}
+`
+
+const DisksQuery = `
+query {
+ disks { id device name type size smartStatus temperature }
+}
+`
+
+const ParityStatusQuery = `
+query {
+ array { parityCheckStatus { date duration status errors progress running paused correcting } }
+}
+`
+
+const ParityHistoryQuery = `
+query {
+ parityHistory { date duration status errors progress running paused correcting }
+}
+`
+
+const CPUMetricsQuery = `
+query { metrics { cpu { percentTotal } } }
+`
+
+const MemoryMetricsQuery = `
+query { metrics { memory { total available active percentTotal } } }
+`
+
+const TemperatureMetricsQuery = `
+query { metrics { temperature { sensors { name type current { value unit status } } } } }
+`
+
+const SystemMetricsQuery = `
+query {
+ metrics {
+  cpu { percentTotal }
+  memory { total available active percentTotal }
+  temperature { sensors { name type current { value unit status } } }
+ }
+}
+`
+
+const ContainerHealthQuery = `
+query { docker { containers { id names state status image autoStart } } }
 `

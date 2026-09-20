@@ -7,6 +7,9 @@ import "encoding/json"
 
 type InfoResponse struct {
 	Info struct {
+		Versions struct {
+			Core CoreVersions `json:"core"`
+		} `json:"versions"`
 		OS struct {
 			Platform string `json:"platform"`
 			Distro   string `json:"distro"`
@@ -36,14 +39,17 @@ type Array struct {
 			Total string `json:"total"`
 		} `json:"kilobytes"`
 	} `json:"capacity"`
-	Disks []ArrayDisk `json:"disks"`
+	Disks             []ArrayDisk  `json:"disks"`
+	Parities          []ArrayDisk  `json:"parities"`
+	Caches            []ArrayDisk  `json:"caches"`
+	Boot              *ArrayDisk   `json:"boot"`
+	ParityCheckStatus *ParityCheck `json:"parityCheckStatus"`
 }
 
 type ArrayMutationResponse struct {
 	Array struct {
 		SetState                 Array     `json:"setState"`
 		AddDiskToArray           Array     `json:"addDiskToArray"`
-		RemoveDiskFromArray      Array     `json:"removeDiskFromArray"`
 		MountArrayDisk           ArrayDisk `json:"mountArrayDisk"`
 		UnmountArrayDisk         ArrayDisk `json:"unmountArrayDisk"`
 		ClearArrayDiskStatistics bool      `json:"clearArrayDiskStatistics"`
@@ -51,13 +57,14 @@ type ArrayMutationResponse struct {
 }
 
 type ArrayDisk struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Device string `json:"device"`
-	Size   int64  `json:"size"` // in KB
-	Status string `json:"status"`
-	Temp   int    `json:"temp"`
-	Type   string `json:"type"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Device    string `json:"device"`
+	Size      int64  `json:"size"` // Raw device capacity in KiB (unlike decimal capacity.kilobytes).
+	NumErrors *int64 `json:"numErrors"`
+	Status    string `json:"status"`
+	Temp      int    `json:"temp"`
+	Type      string `json:"type"`
 }
 
 type DockerResponse struct {
@@ -148,9 +155,7 @@ type DockerMutationResponse struct {
 }
 
 type MetricsResponse struct {
-	Metrics struct {
-		Network []NetworkMetrics `json:"network"`
-	} `json:"metrics"`
+	Metrics Metrics `json:"metrics"`
 }
 
 type NetworkMetrics struct {
@@ -183,17 +188,29 @@ type Share struct {
 }
 
 type NotificationsResponse struct {
-	Notifications struct {
-		Overview struct {
-			Unread struct {
-				Total int `json:"total"`
-			} `json:"unread"`
-		} `json:"overview"`
-		List []Notification `json:"list"`
-	} `json:"notifications"`
+	Notifications Notifications `json:"notifications"`
+}
+
+type Notifications struct {
+	Overview          NotificationOverview `json:"overview"`
+	List              []Notification       `json:"list"`
+	WarningsAndAlerts []Notification       `json:"warningsAndAlerts"`
+}
+
+type NotificationOverview struct {
+	Unread  NotificationCounts `json:"unread"`
+	Archive NotificationCounts `json:"archive"`
+}
+
+type NotificationCounts struct {
+	Total   int `json:"total"`
+	Info    int `json:"info"`
+	Warning int `json:"warning"`
+	Alert   int `json:"alert"`
 }
 
 type Notification struct {
+	Type       string `json:"type"`
 	ID         string `json:"id"`
 	Subject    string `json:"subject"`
 	Importance string `json:"importance"`

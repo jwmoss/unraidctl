@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jwmoss/unraidctl/internal/api"
@@ -25,6 +26,9 @@ var vmListCmd = &cobra.Command{
 
 		var resp api.VMsResponse
 		if err := apiClient.Query(ctx, api.VMsQuery, nil, &resp); err != nil {
+			if strings.Contains(err.Error(), "Failed to retrieve VM domains: VMs are not available") {
+				return fmt.Errorf("VM Manager is disabled or unavailable on this server: %w", err)
+			}
 			return fmt.Errorf("failed to list VMs: %w", err)
 		}
 

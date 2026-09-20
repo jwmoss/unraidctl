@@ -16,10 +16,7 @@ var arrayCmd = &cobra.Command{
 	Long:  `Commands for managing the Unraid disk array including status, start, and stop operations.`,
 }
 
-var (
-	arrayAddSlot    int
-	arrayRemoveSlot int
-)
+var arrayAddSlot int
 
 var arrayStatusCmd = &cobra.Command{
 	Use:   "status",
@@ -84,25 +81,12 @@ var arrayAddDiskCmd = &cobra.Command{
 
 var arrayRemoveDiskCmd = &cobra.Command{
 	Use:   "remove-disk <disk-id>",
-	Short: "Remove a disk from the array",
+	Short: "Explain the retired disk removal operation",
 	Args:  cobra.ExactArgs(1),
+	// No configuration or API call is needed for this retired operation.
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error { return nil },
 	RunE: func(cmd *cobra.Command, args []string) error {
-		input := map[string]interface{}{"id": args[0]}
-		if arrayRemoveSlot >= 0 {
-			input["slot"] = arrayRemoveSlot
-		}
-
-		var resp api.ArrayMutationResponse
-		if err := queryWithTimeout(api.ArrayRemoveDiskMutation, map[string]interface{}{"input": input}, &resp); err != nil {
-			return fmt.Errorf("failed to remove array disk: %w", err)
-		}
-
-		if out.IsJSON() {
-			return out.JSON(resp.Array.RemoveDiskFromArray)
-		}
-		out.Success("Disk removed from array")
-		renderArray(resp.Array.RemoveDiskFromArray)
-		return nil
+		return fmt.Errorf("direct disk removal is retired in Unraid API 4.37.4; use the Unraid WebGUI storage workflow")
 	},
 }
 
@@ -192,15 +176,15 @@ func renderArray(arr api.Array) {
 	out.Println("============")
 	out.Print("State: %s\n", arr.State)
 
-	// Capacity values are strings in KB in the Unraid API.
+	// Capacity values are decimal KB; raw device sizes below are KiB.
 	if arr.Capacity.Kilobytes.Total != "" {
 		total, _ := strconv.ParseInt(arr.Capacity.Kilobytes.Total, 10, 64)
 		used, _ := strconv.ParseInt(arr.Capacity.Kilobytes.Used, 10, 64)
 		free, _ := strconv.ParseInt(arr.Capacity.Kilobytes.Free, 10, 64)
 
-		totalTB := float64(total) / (1024 * 1024 * 1024)
-		usedTB := float64(used) / (1024 * 1024 * 1024)
-		freeTB := float64(free) / (1024 * 1024 * 1024)
+		totalTB := float64(total) / 1e9
+		usedTB := float64(used) / 1e9
+		freeTB := float64(free) / 1e9
 		usedPct := 0.0
 		if total > 0 {
 			usedPct = float64(used) / float64(total) * 100
@@ -213,12 +197,13 @@ func renderArray(arr api.Array) {
 		out.Print("Free:  %.2f TB\n", freeTB)
 	}
 
-	if len(arr.Disks) > 0 {
+	disks := arr.AllDisks()
+	if len(disks) > 0 {
 		out.Println("")
 		out.Println("Disks")
 		headers := []string{"NAME", "DEVICE", "TYPE", "SIZE", "STATUS", "TEMP"}
 		var rows [][]string
-		for _, disk := range arr.Disks {
+		for _, disk := range disks {
 			rows = append(rows, formatArrayDiskRow(disk))
 		}
 		out.Table(headers, rows)
@@ -239,7 +224,7 @@ func formatArrayDiskRow(disk api.ArrayDisk) []string {
 		disk.Name,
 		disk.Device,
 		disk.Type,
-		fmt.Sprintf("%.2f TB", sizeTB),
+		fmt.Sprintf("%.2f TiB", sizeTB),
 		disk.Status,
 		tempStr,
 	}
@@ -256,5 +241,4 @@ func init() {
 	arrayCmd.AddCommand(arrayClearStatsCmd)
 
 	arrayAddDiskCmd.Flags().IntVar(&arrayAddSlot, "slot", -1, "array slot for the disk")
-	arrayRemoveDiskCmd.Flags().IntVar(&arrayRemoveSlot, "slot", -1, "array slot for the disk")
 }

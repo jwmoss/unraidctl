@@ -53,7 +53,13 @@ var infoCmd = &cobra.Command{
 		out.Println("System Information")
 		out.Println("==================")
 		out.Print("Hostname:  %s\n", info.OS.Hostname)
-		out.Print("OS:        %s %s\n", info.OS.Distro, info.OS.Release)
+		release := info.Versions.Core.Unraid
+		if release == "" {
+			release = info.OS.Release
+		}
+		out.Print("OS:        %s %s\n", info.OS.Distro, release)
+		out.Print("API:       %s\n", info.Versions.Core.API)
+		out.Print("Kernel:    %s\n", info.Versions.Core.Kernel)
 		out.Print("Platform:  %s\n", info.OS.Platform)
 		if uptimeStr != "" {
 			out.Print("Uptime:    %s\n", uptimeStr)

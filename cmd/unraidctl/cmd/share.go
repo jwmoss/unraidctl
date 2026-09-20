@@ -38,7 +38,8 @@ var shareListCmd = &cobra.Command{
 			return nil
 		}
 
-		headers := []string{"NAME", "USED", "FREE", "COMMENT"}
+		out.Println("Storage capacity available to each share; values are not folder sizes and must not be added together.")
+		headers := []string{"NAME", "STORAGE USED", "STORAGE FREE", "COMMENT"}
 		var rows [][]string
 		for _, s := range resp.Shares {
 			usedStr := formatSizeKB(s.Used)
@@ -64,9 +65,9 @@ func formatSizeKB(kb int64) string {
 	// Convert KB to appropriate unit
 	const (
 		KB = 1
-		MB = 1024
-		GB = 1024 * 1024
-		TB = 1024 * 1024 * 1024
+		MB = 1000
+		GB = 1000 * 1000
+		TB = 1000 * 1000 * 1000
 	)
 
 	switch {
