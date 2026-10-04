@@ -34,3 +34,7 @@ bin/
 # Local config (don't commit secrets!)
 config.yaml
 .env
+
+# End-to-end test dependencies and reports
+node_modules/
+.e2e/

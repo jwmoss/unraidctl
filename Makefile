@@ -29,3 +29,8 @@ build-all: clean
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-amd64 ./cmd/unraidctl
 	GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-arm64 ./cmd/unraidctl
 	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-windows-amd64.exe ./cmd/unraidctl
+
+# Fixture-only compiled CLI tests; no Unraid server credentials are required.
+.PHONY: test-e2e
+test-e2e: build
+	npm exec --no -- e2e run

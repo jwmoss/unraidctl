@@ -1,0 +1,7 @@
+{
+  "name": "unraidctl-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": { "test:e2e": "make test-e2e" },
+  "devDependencies": { "e2e": "0.17.0" }
+}
