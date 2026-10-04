@@ -41,8 +41,15 @@ Configuration can be provided via:
   - Environment variables (UNRAID_SERVER, UNRAID_API_KEY)
   - Config file (~/.config/unraidctl/config.yaml)`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Skip config validation for help and version
-		if cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "configure" {
+		if cmd.Args == nil {
+			if err := cobra.NoArgs(cmd, args); err != nil {
+				return err
+			}
+		}
+
+		// Local commands do not require server credentials.
+		if cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "configure" ||
+			(cmd.Parent() != nil && cmd.Parent().Name() == "completion") {
 			return nil
 		}
 

@@ -14,12 +14,24 @@ var configureCmd = &cobra.Command{
 	Use:   "configure",
 	Short: "Configure unraidctl settings",
 	Long: `Interactively configure unraidctl with your Unraid server details.
-This will create or update the config file at ~/.config/unraidctl/config.yaml`,
+This creates or updates ~/.config/unraidctl/config.yaml, or the path selected with --config.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		reader := bufio.NewReader(os.Stdin)
 
-		// Load existing config if present
-		existingCfg, _ := config.Load("")
+		path := cfgFile
+		if path == "" {
+			path = config.DefaultConfigPath()
+		}
+		existingCfg, err := config.Load(path)
+		if err != nil {
+			return err
+		}
+		if serverURL != "" {
+			existingCfg.Server = serverURL
+		}
+		if apiKey != "" {
+			existingCfg.APIKey = apiKey
+		}
 
 		fmt.Println("unraidctl Configuration")
 		fmt.Println("=======================")
@@ -51,12 +63,15 @@ This will create or update the config file at ~/.config/unraidctl/config.yaml`,
 			APIKey: apiKeyInput,
 		}
 
-		if err := config.Save(newCfg, ""); err != nil {
+		if err := newCfg.Validate(); err != nil {
+			return err
+		}
+		if err := config.Save(newCfg, path); err != nil {
 			return fmt.Errorf("failed to save config: %w", err)
 		}
 
 		fmt.Println()
-		fmt.Printf("Configuration saved to %s\n", config.DefaultConfigPath())
+		fmt.Printf("Configuration saved to %s\n", path)
 		fmt.Println()
 		fmt.Println("Test your connection with:")
 		fmt.Println("  unraidctl info")

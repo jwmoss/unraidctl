@@ -122,6 +122,9 @@ export UNRAID_API_KEY="your-api-key-here"
 
 Flags > Environment variables > Config file
 
+Use the final server URL. The client follows same-origin redirects only.
+It blocks redirects to another origin to protect the API key.
+
 ## Usage
 
 ```bash
@@ -221,6 +224,13 @@ unraidctl docker list --json | jq '.[].names[0]'
 |------|---------|
 | 0 | Success |
 | 1 | Command error, or health report with alerts, warnings, or incomplete data |
+
+## Development tests
+
+Run the native checks with `go test ./...`, `go build ./...`, and `make lint`.
+Run the compiled CLI flows with `npm ci --ignore-scripts`, then `npm run test:e2e`.
+These tests use local fixtures and require no Unraid credentials.
+See the [command coverage matrix](tests/e2e/README.md) for server verification limits.
 
 ## Contributing
 

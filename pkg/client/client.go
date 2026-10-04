@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -37,6 +39,20 @@ func New(baseURL, apiKey string) *Client {
 		apiKey:  apiKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// net/http's transport requires a lowercase scheme, including redirects.
+				req.URL.Scheme = strings.ToLower(req.URL.Scheme)
+				original := via[0].URL
+				if !strings.EqualFold(req.URL.Scheme, original.Scheme) ||
+					!strings.EqualFold(req.URL.Hostname(), original.Hostname()) ||
+					effectivePort(req.URL) != effectivePort(original) {
+					return fmt.Errorf("refusing cross-origin API redirect")
+				}
+				if len(via) >= 10 {
+					return fmt.Errorf("stopped after 10 redirects")
+				}
+				return nil
+			},
 		},
 	}
 }
@@ -72,7 +88,7 @@ func (c *Client) Query(ctx context.Context, query string, variables map[string]i
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("API returned status %d: %s", resp.StatusCode, c.redact(string(respBody)))
 	}
 
 	var gqlResp GraphQLResponse
@@ -81,7 +97,7 @@ func (c *Client) Query(ctx context.Context, query string, variables map[string]i
 	}
 
 	if len(gqlResp.Errors) > 0 {
-		return fmt.Errorf("GraphQL error: %s", gqlResp.Errors[0].Message)
+		return fmt.Errorf("GraphQL error: %s", c.redact(gqlResp.Errors[0].Message))
 	}
 
 	if result != nil {
@@ -91,4 +107,28 @@ func (c *Client) Query(ctx context.Context, query string, variables map[string]i
 	}
 
 	return nil
+}
+
+func (c *Client) redact(message string) string {
+	if c.apiKey == "" {
+		return message
+	}
+	return strings.ReplaceAll(message, c.apiKey, "[REDACTED]")
+}
+
+func effectivePort(endpoint *url.URL) string {
+	if port := endpoint.Port(); port != "" {
+		if normalized := strings.TrimLeft(port, "0"); normalized != "" {
+			return normalized
+		}
+		return "0"
+	}
+	switch strings.ToLower(endpoint.Scheme) {
+	case "http":
+		return "80"
+	case "https":
+		return "443"
+	default:
+		return ""
+	}
 }

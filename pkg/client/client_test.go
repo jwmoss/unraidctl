@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -154,5 +156,67 @@ func TestClient_Query_WithVariables(t *testing.T) {
 	err := client.Query(ctx, "query($id: String!) { container(id: $id) { id state } }", vars, &result)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// roundTripFunc replaces only the HTTP wire, so Client.Query still uses the
+// production HTTP client and its normal redirect callback.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestClient_Query_RedirectOrigins(t *testing.T) {
+	cases := []struct {
+		name, from, to, wantError string
+		wantRequests              int
+		loop                      bool
+	}{
+		{"implicit HTTP port", "http://fixture.invalid", "HTTP://FIXTURE.INVALID:80/next", "", 2, false},
+		{"zero-padded HTTP port", "http://fixture.invalid", "http://fixture.invalid:00080/next", "", 2, false},
+		{"explicit HTTP port", "http://fixture.invalid:80", "http://fixture.invalid/next", "", 2, false},
+		{"implicit HTTPS port", "https://fixture.invalid", "https://fixture.invalid:443/next", "", 2, false},
+		{"explicit HTTPS port", "https://fixture.invalid:443", "https://FIXTURE.INVALID/next", "", 2, false},
+		{"default to zero port", "http://fixture.invalid", "http://fixture.invalid:0/next", "cross-origin", 1, false},
+		{"zero to default port", "http://fixture.invalid:0", "http://fixture.invalid/next", "cross-origin", 1, false},
+		{"different port", "http://fixture.invalid:8080", "http://fixture.invalid:80/next", "cross-origin", 1, false},
+		{"different host", "http://fixture.invalid", "http://other.invalid/next", "cross-origin", 1, false},
+		{"different scheme", "http://fixture.invalid:80", "https://fixture.invalid:80/next", "cross-origin", 1, false},
+		{"downgrade", "https://fixture.invalid:443", "http://fixture.invalid:443/next", "cross-origin", 1, false},
+		{"redirect limit", "http://fixture.invalid", "http://fixture.invalid/next", "stopped after 10 redirects", 10, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := New(tc.from, "synthetic-redirect-key")
+			requests := 0
+			c.httpClient.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				requests++
+				if req.Method != http.MethodPost || req.Header.Get("x-api-key") != "synthetic-redirect-key" {
+					t.Errorf("redirect must preserve POST and the API key")
+				}
+				if req.Body != nil {
+					_ = req.Body.Close()
+				}
+				response := &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"data":{"marker":"redirect-success"}}`)), Request: req}
+				if requests == 1 || tc.loop {
+					response.StatusCode = http.StatusTemporaryRedirect
+					response.Header.Set("Location", tc.to)
+				}
+				return response, nil
+			})
+			var result map[string]string
+			err := c.Query(context.Background(), "query { marker }", nil, &result)
+			if tc.wantError == "" {
+				if err != nil || result["marker"] != "redirect-success" {
+					t.Fatalf("same-origin query fails: result=%v error=%v", result, err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), tc.wantError) {
+				t.Fatalf("expected %q, got %v", tc.wantError, err)
+			}
+			if requests != tc.wantRequests {
+				t.Errorf("sent %d requests; want %d", requests, tc.wantRequests)
+			}
+		})
 	}
 }
