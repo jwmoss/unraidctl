@@ -1,7 +1,9 @@
-.PHONY: build clean test install lint
+.PHONY: build clean test install lint fmt-check tidy-check vet check release-tool-check release-check release-snapshot
 
 BINARY_NAME=unraidctl
-VERSION?=1.3.0
+VERSION?=1.3.1
+GORELEASER_VERSION := $(shell cat .goreleaser-version)
+GORELEASER := goreleaser
 VERSION_PACKAGE=github.com/jwmoss/unraidctl/cmd/unraidctl/cmd
 LDFLAGS=-ldflags "-X $(VERSION_PACKAGE).version=$(VERSION)"
 
@@ -19,7 +21,27 @@ test:
 	go test -v ./...
 
 lint:
-	golangci-lint run
+	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run
+
+fmt-check:
+	@test -z "$$(gofmt -l cmd internal pkg tests)"
+
+tidy-check:
+	go mod tidy -diff
+
+vet:
+	go vet ./...
+
+check: fmt-check tidy-check vet test build
+
+release-tool-check:
+	@$(GORELEASER) --version | grep -Eq "^GitVersion: +v?$(subst .,[.],$(GORELEASER_VERSION:v%=%))$$" || { echo "Install GoReleaser $(GORELEASER_VERSION)"; exit 1; }
+
+release-check: release-tool-check
+	$(GORELEASER) check
+
+release-snapshot: release-tool-check
+	$(GORELEASER) release --snapshot --clean
 
 # Cross-compilation
 build-all: clean

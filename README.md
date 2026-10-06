@@ -86,6 +86,9 @@ Download the latest binary from [Releases](https://github.com/jwmoss/unraidctl/r
 go install github.com/jwmoss/unraidctl/cmd/unraidctl@latest
 ```
 
+`unraidctl version` uses the module version from `go install` when the build has no explicit version.
+Explicit build flags take precedence. Local source builds use `dev` when no version is available.
+
 ### Build from source
 
 ```bash
@@ -101,6 +104,10 @@ go build -o unraidctl ./cmd/unraidctl
 ```bash
 unraidctl configure
 ```
+
+Use `--config PATH` to select a different file. `configure` replaces an existing regular file with a private file (POSIX mode `0600`). Windows uses inherited directory permissions.
+It rejects destination symlinks and nonregular files. A failed save preserves the previous contents.
+It creates missing config directories with mode `0700`.
 
 ### Config file
 
@@ -121,6 +128,8 @@ export UNRAID_API_KEY="your-api-key-here"
 ### Precedence
 
 Flags > Environment variables > Config file
+
+A missing config file permits flags and environment variables. Other file read errors stop the command, even when credentials are available.
 
 Use the final server URL. The client follows same-origin redirects only.
 It blocks redirects to another origin to protect the API key.

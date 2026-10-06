@@ -1,6 +1,6 @@
 module github.com/jwmoss/unraidctl
 
-go 1.22
+go 1.27.1
 
 require (
 	github.com/spf13/cobra v1.10.2
