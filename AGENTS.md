@@ -16,7 +16,7 @@
 - `make build-all` – Cross-compile artifacts into `dist/` for darwin/linux/windows (amd64 + arm64).
 
 ## Coding Style & Naming Conventions
-- Target Go 1.22; run `gofmt` (tabs, 4-space visual indent) before commits.
+- Use the Go version in `go.mod`; run `gofmt` before commits.
 - Keep packages short, lowercase; exported identifiers use PascalCase; unexported use camelCase.
 - Prefer table-driven tests and subtests; keep command names verb-first (e.g., `array status`, `docker list`).
 - Lint locally with `make lint` to catch `errcheck` and style violations.

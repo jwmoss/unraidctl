@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/jwmoss/unraidctl/internal/config"
 	"github.com/jwmoss/unraidctl/internal/output"
@@ -116,7 +117,13 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("unraidctl version %s\n", version)
+		v := version
+		if v == "dev" {
+			if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+				v = info.Main.Version
+			}
+		}
+		fmt.Printf("unraidctl version %s\n", v)
 		fmt.Printf("commit: %s\n", commit)
 		fmt.Printf("built:  %s\n", date)
 	},

@@ -4,67 +4,89 @@ on:
   push:
     branches: [master, main]
   pull_request:
-    branches: [master, main]
+  workflow_call:
 
 permissions:
   contents: read
 
-jobs:
-  build:
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ['1.22.x']
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Setup Go ${{ matrix.go-version }}
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: ${{ matrix.go-version }}
-
-      - name: Display Go version
-        run: go version
-
-      - name: Install dependencies
-        run: go mod download
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Test
-        run: go test -v ./...
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+          go-version-file: go.mod
+          cache: false
+      - name: Check
+        if: runner.os != 'Windows'
+        run: make check
+      - name: Check on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $unformatted = gofmt -l (Get-ChildItem -Recurse -Filter *.go | Select-Object -ExpandProperty FullName)
+          if ($unformatted) { throw "Unformatted Go files: $unformatted" }
+          go mod tidy -diff
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          go vet ./...
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          go test -count=1 -timeout=2m ./...
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          go build ./...
+          exit $LASTEXITCODE
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: runner.os == 'Linux'
         with:
           node-version: '26.10.0'
           cache: npm
+      - name: CLI end-to-end flows
+        if: runner.os == 'Linux'
+        env:
+          DO_NOT_TRACK: '1'
+        run: |
+          npm ci --ignore-scripts
+          npm run test:e2e
+      - name: Race check
+        if: runner.os == 'Linux'
+        run: go test -race -timeout=2m ./...
 
-      - name: Install end-to-end dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Test compiled CLI against local fixtures
-        run: make test-e2e
-
-  lint:
+  quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Setup Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.22.x'
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+          go-version-file: go.mod
+          cache: false
+      - name: Audit workflows and dependencies
+        run: |
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          pipx run zizmor==1.30.1 --no-progress .github/workflows
+          go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+      - name: Lint Go
+        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run ./...
+      - name: Read release version
+        id: release-version
+        run: echo "version=$(cat .goreleaser-version)" >> "$GITHUB_OUTPUT"
+      - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
-          version: latest
-          args: --timeout=5m
+          distribution: goreleaser
+          version: ${{ steps.release-version.outputs.version }}
+          install-only: true
+      - name: Validate release configuration
+        run: goreleaser check
