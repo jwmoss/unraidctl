@@ -24,7 +24,7 @@ lint:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0 run
 
 fmt-check:
-	@test -z "$$(gofmt -l cmd internal)"
+	@test -z "$$(gofmt -l cmd internal pkg tests)"
 
 tidy-check:
 	go mod tidy -diff
