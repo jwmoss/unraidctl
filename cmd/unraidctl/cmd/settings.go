@@ -60,7 +60,7 @@ var settingsUpdateCmd = &cobra.Command{
 			payloadBytes = bytes
 		}
 
-		var payload map[string]interface{}
+		var payload map[string]json.RawMessage
 		if err := json.Unmarshal(payloadBytes, &payload); err != nil {
 			return fmt.Errorf("settings payload must be valid JSON object: %w", err)
 		}

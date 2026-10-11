@@ -14,7 +14,7 @@ var infoCmd = &cobra.Command{
 	Short: "Display system information",
 	Long:  `Display system information including OS, CPU, and Unraid version.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		var resp api.InfoResponse

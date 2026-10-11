@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+	"time"
 
 	"github.com/jwmoss/unraidctl/internal/config"
 	"github.com/jwmoss/unraidctl/internal/output"
@@ -18,6 +19,10 @@ var (
 	jsonOutput bool
 	quiet      bool
 	noColor    bool
+	plain      bool
+	dryRun     bool
+	traceHTTP  bool
+	timeout    time.Duration
 
 	cfg       *config.Config
 	apiClient *client.Client
@@ -48,13 +53,22 @@ Configuration can be provided via:
 			}
 		}
 
+		if jsonOutput && plain {
+			return fmt.Errorf("choose only one of --json or --plain")
+		}
+		if timeout <= 0 {
+			return fmt.Errorf("--timeout must be greater than zero")
+		}
+		out = output.New(jsonOutput, plain, quiet, noColor)
+		if dryRun && cmd.Name() == "configure" {
+			return fmt.Errorf("dry-run: refusing config writes")
+		}
+
 		// Local commands do not require server credentials.
 		if cmd.Name() == "help" || cmd.Name() == "version" || cmd.Name() == "configure" ||
 			(cmd.Parent() != nil && cmd.Parent().Name() == "completion") {
 			return nil
 		}
-
-		out = output.New(jsonOutput, quiet, noColor)
 
 		var err error
 		cfg, err = config.Load(cfgFile)
@@ -75,7 +89,13 @@ Configuration can be provided via:
 			return err
 		}
 
-		apiClient = client.New(cfg.Server, cfg.APIKey)
+		options := []client.Option{client.WithTimeout(timeout), client.WithDryRun(dryRun)}
+		if traceHTTP {
+			options = append(options, client.WithTrace(func(method, path string, status int, duration time.Duration) {
+				fmt.Fprintf(os.Stderr, "[http] %s %s -> %d (%s)\n", method, path, status, duration)
+			}))
+		}
+		apiClient = client.New(cfg.Server, cfg.APIKey, options...)
 		return nil
 	},
 	SilenceUsage:  true,
@@ -98,6 +118,11 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "suppress non-essential output")
 	rootCmd.PersistentFlags().BoolVar(&noColor, "no-color", false, "disable colored output")
 
+	rootCmd.PersistentFlags().BoolVar(&plain, "plain", false, "emit tab-separated table rows without headers")
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "refuse GraphQL mutations and configuration writes")
+	rootCmd.PersistentFlags().BoolVar(&traceHTTP, "trace-http", false, "log HTTP method, path, status, and duration to stderr")
+	rootCmd.PersistentFlags().DurationVar(&timeout, "timeout", 30*time.Second, "HTTP timeout")
+
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(infoCmd)
 	rootCmd.AddCommand(arrayCmd)
@@ -116,15 +141,23 @@ func init() {
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		v := version
 		if v == "dev" {
 			if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 				v = info.Main.Version
 			}
 		}
+		if jsonOutput {
+			return out.JSON(map[string]string{"version": v, "commit": commit, "date": date})
+		}
+		if plain {
+			out.Println(v)
+			return nil
+		}
 		fmt.Printf("unraidctl version %s\n", v)
 		fmt.Printf("commit: %s\n", commit)
 		fmt.Printf("built:  %s\n", date)
+		return nil
 	},
 }

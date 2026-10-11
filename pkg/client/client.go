@@ -10,12 +10,17 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/vektah/gqlparser/v2/parser"
 )
 
 type Client struct {
 	baseURL    string
 	apiKey     string
 	httpClient *http.Client
+	dryRun     bool
+	trace      func(string, string, int, time.Duration)
 }
 
 type GraphQLRequest struct {
@@ -33,8 +38,22 @@ type GraphQLError struct {
 	Path    []any  `json:"path,omitempty"`
 }
 
-func New(baseURL, apiKey string) *Client {
-	return &Client{
+type Option func(*Client)
+
+func WithTimeout(timeout time.Duration) Option {
+	return func(c *Client) { c.httpClient.Timeout = timeout }
+}
+
+func WithTrace(trace func(string, string, int, time.Duration)) Option {
+	return func(c *Client) { c.trace = trace }
+}
+
+func WithDryRun(enabled bool) Option {
+	return func(c *Client) { c.dryRun = enabled }
+}
+
+func New(baseURL, apiKey string, options ...Option) *Client {
+	c := &Client{
 		baseURL: baseURL,
 		apiKey:  apiKey,
 		httpClient: &http.Client{
@@ -55,9 +74,24 @@ func New(baseURL, apiKey string) *Client {
 			},
 		},
 	}
+	for _, option := range options {
+		option(c)
+	}
+	return c
 }
 
 func (c *Client) Query(ctx context.Context, query string, variables map[string]interface{}, result interface{}) error {
+	if c.dryRun {
+		document, err := parser.ParseQuery(&ast.Source{Input: query})
+		if err != nil {
+			return fmt.Errorf("dry-run: cannot validate GraphQL operation: %w", err)
+		}
+		for _, operation := range document.Operations {
+			if operation.Operation != ast.Query {
+				return fmt.Errorf("dry-run: refusing GraphQL %s", operation.Operation)
+			}
+		}
+	}
 	reqBody := GraphQLRequest{
 		Query:     query,
 		Variables: variables,
@@ -76,15 +110,24 @@ func (c *Client) Query(ctx context.Context, query string, variables map[string]i
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", c.apiKey)
 
+	start := time.Now()
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+	if c.trace != nil {
+		c.trace(req.Method, c.redact(req.URL.Path), resp.StatusCode, time.Since(start))
+	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	const maxResponseBytes = 64 << 20
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 	if err != nil {
 		return fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if len(respBody) > maxResponseBytes {
+		return fmt.Errorf("response exceeds the 64 MiB limit")
 	}
 
 	if resp.StatusCode != http.StatusOK {

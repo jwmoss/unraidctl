@@ -5,21 +5,24 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"text/tabwriter"
 )
 
 type Formatter struct {
 	json    bool
+	plain   bool
 	quiet   bool
 	noColor bool
 	writer  io.Writer
 }
 
-func New(jsonOutput, quiet, noColor bool) *Formatter {
+func New(jsonOutput, plain, quiet, noColor bool) *Formatter {
 	return &Formatter{
 		json:    jsonOutput,
+		plain:   plain,
 		quiet:   quiet,
-		noColor: noColor || os.Getenv("NO_COLOR") != "",
+		noColor: noColor || plain || os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb",
 		writer:  os.Stdout,
 	}
 }
@@ -51,6 +54,12 @@ func (f *Formatter) IsJSON() bool {
 }
 
 func (f *Formatter) Table(headers []string, rows [][]string) {
+	if f.plain {
+		for _, row := range rows {
+			_, _ = fmt.Fprintln(f.writer, strings.Join(row, "\t"))
+		}
+		return
+	}
 	w := tabwriter.NewWriter(f.writer, 0, 0, 2, ' ', 0)
 
 	// Print headers

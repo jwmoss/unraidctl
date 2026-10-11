@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/jwmoss/unraidctl/internal/api"
 	"github.com/spf13/cobra"
@@ -21,7 +20,7 @@ var shareListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List shares",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
 		var resp api.SharesResponse
