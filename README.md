@@ -12,17 +12,19 @@ A command-line tool to interact with the [Unraid API](https://docs.unraid.net/AP
 
 - **System Information** - View exact Unraid, API, and kernel versions, CPU, and uptime
 - **Health** - Check array devices, parity history, raw UPS alarms, containers, sensors, and unread alerts
-- **UPS and Disks** - View UPS status, physical disks, and basic SMART status
-- **Parity** - View current parity status and complete check history
+- **UPS and Disks** - View UPS status and configuration, change UPS settings, and view physical disks and basic SMART status
+- **Parity** - View parity status and history; start, pause, resume, and cancel parity checks
 - **Array Management** - Check array status, capacity, and disk health
 - **Array Operations** - Start/stop the array and manage disk assignment/mount state
-- **Docker Containers** - List, inspect, start, stop, restart, pause, update, remove, and view logs
-- **System Metrics** - View CPU, memory, temperature, network traffic, errors, drops, and link utilization
+- **Docker Containers** - List, inspect, start, stop, restart, pause, update, remove, view logs, check for updates, and stream live stats
+- **System Metrics** - View or stream CPU, memory, temperature, network traffic, and CPU package power
+- **System** - View services, server identity, network interfaces, plugins, and time settings; change time settings
+- **Flash Backup** - Start an rclone backup of the USB flash device
 - **Shares** - List user shares and their available storage capacity
-- **Notifications** - List every unread/archive notification and deduplicated warnings/alerts
-- **Virtual Machines** - List VMs (when enabled)
+- **Notifications** - List, archive, unarchive, delete, create, and stream notifications
+- **Virtual Machines** - List, start, stop, pause, resume, force-stop, reboot, and reset VMs (when enabled)
 - **API Keys** - List, create, update, delete, and manage roles/permissions
-- **Logs** - List and read Unraid API log files
+- **Logs** - List, read, and follow Unraid API log files
 - **Settings and SSO** - Inspect/update API settings and view OIDC provider configuration
 - **JSON Output** - Machine-readable output for scripting
 
@@ -49,12 +51,15 @@ The `API version` row shows the active server API version.
 | `unraidctl metrics network` | 4.35 |
 | `unraidctl docker restart <container-id>` | 4.36 |
 
-The contract tests cover API **4.37.3** and **4.37.4**. Older APIs can require a Connect plugin update.
+The contract tests cover API **4.37.3**, **4.37.4**, and **4.37.5**. Older APIs can require a Connect plugin update.
 The health and reporting commands require read access to their resources. On API 4.37.4, UPS access requires `CONFIG:READ_ANY`.
 Feature flags can restrict Docker fields even when the generated schema includes them.
 
 API 4.37.4 removes direct disk removal. `array remove-disk` now returns guidance without a server request.
 Use the Unraid WebGUI storage workflow for disk removal.
+
+`--watch`, `--follow`, `docker stats`, `metrics cpu-telemetry`, and `notification watch` use GraphQL subscriptions over WebSocket (`graphql-transport-ws` on `/graphql`).
+API 4.37.5 never delivers array, parity, or live UPS subscription events, so those commands have no watch mode.
 
 ## Health and capacity interpretation
 
@@ -145,6 +150,10 @@ unraidctl ups status
 unraidctl disk list
 unraidctl parity status
 unraidctl parity history
+unraidctl parity start            # read-only check; add --correct to write corrections
+unraidctl parity pause | resume | cancel
+unraidctl ups config
+unraidctl ups set --battery-level 15 --minutes 10 --yes
 
 # Array management
 unraidctl array status
@@ -169,15 +178,33 @@ unraidctl docker update <container-id>
 unraidctl docker update-all
 unraidctl docker autostart <container-id> --enable --wait 10
 unraidctl docker remove <container-id> --with-image
+unraidctl docker update <container-id> <container-id>
+unraidctl docker check-updates
+unraidctl docker stats --count 20
 
 # System metrics
 unraidctl metrics cpu
 unraidctl metrics memory
 unraidctl metrics temperature
 unraidctl metrics network
+unraidctl metrics cpu --watch      # stream until Ctrl-C; --count N stops after N updates
+unraidctl metrics cpu-telemetry
+
+# System
+unraidctl system services
+unraidctl system server
+unraidctl system interfaces
+unraidctl system plugins
+unraidctl system time
+unraidctl system timezones
+unraidctl system set-time --timezone America/New_York --ntp-server time.nist.gov --yes
+
+# Flash backup (needs a configured rclone remote)
+unraidctl flash backup --remote <remote> --destination unraid/flash
 
 # Virtual machines
 unraidctl vm list
+unraidctl vm start <vm-id>        # also stop, pause, resume, force-stop, reboot, reset
 
 # Shares
 unraidctl share list
@@ -186,6 +213,14 @@ unraidctl share list
 unraidctl notification list
 unraidctl notification list --all
 unraidctl notification alerts
+unraidctl notification archive <notification-id>...
+unraidctl notification archive --all --importance INFO
+unraidctl notification unarchive <notification-id>...
+unraidctl notification delete <notification-id> --yes
+unraidctl notification delete-archived --yes
+unraidctl notification create --title Backup --subject Done --description "Nightly job finished" --unique
+unraidctl notification recalculate
+unraidctl notification watch
 
 # API keys
 unraidctl apikey list
@@ -200,6 +235,7 @@ unraidctl apikey permissions
 # Logs
 unraidctl log list
 unraidctl log show /var/log/graphql-api.log --lines 100
+unraidctl log show /var/log/syslog --follow
 
 # Settings and SSO/OIDC
 unraidctl settings show

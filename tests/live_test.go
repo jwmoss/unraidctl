@@ -38,6 +38,18 @@ func TestLiveReadOnly(t *testing.T) {
 			state, ok := data["state"].(string)
 			return ok && state != ""
 		}},
+		{"system services", []string{"system", "services"}, nonEmptyList},
+		{"system time", []string{"system", "time"}, func(v any) bool {
+			data, ok := v.(map[string]any)
+			zone, _ := data["timeZone"].(string)
+			return ok && zone != ""
+		}},
+		{"network interfaces", []string{"system", "interfaces"}, nonEmptyList},
+		{"CPU subscription", []string{"metrics", "cpu", "--watch", "--count", "1"}, func(v any) bool {
+			data, ok := v.(map[string]any)
+			_, hasTotal := data["percentTotal"].(float64)
+			return ok && hasTotal
+		}},
 	}
 	for _, check := range cases {
 		t.Run(check.name, func(t *testing.T) {
@@ -57,4 +69,9 @@ func TestLiveReadOnly(t *testing.T) {
 			}
 		})
 	}
+}
+
+func nonEmptyList(v any) bool {
+	list, ok := v.([]any)
+	return ok && len(list) > 0
 }

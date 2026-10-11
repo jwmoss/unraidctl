@@ -16,6 +16,7 @@ var logCmd = &cobra.Command{
 var (
 	logShowLines     int
 	logShowStartLine int
+	logFollow        bool
 )
 
 var logListCmd = &cobra.Command{
@@ -50,6 +51,14 @@ var logShowCmd = &cobra.Command{
 	Short:   "Show a log file",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if logFollow {
+			// The first event holds the file's recent lines; later events hold only new lines.
+			return watch(api.LogFileSubscription, map[string]interface{}{"path": args[0]}, func(r struct {
+				LogFile api.LogFileContent `json:"logFile"`
+			}) error {
+				return printJSONOr(r.LogFile, func() { out.Print("%s", r.LogFile.Content) })
+			})
+		}
 		variables := map[string]interface{}{"path": args[0]}
 		if logShowLines > 0 {
 			variables["lines"] = logShowLines
@@ -75,5 +84,7 @@ func init() {
 	logCmd.AddCommand(logShowCmd)
 
 	logShowCmd.Flags().IntVar(&logShowLines, "lines", 100, "number of lines to read")
+	logShowCmd.Flags().BoolVarP(&logFollow, "follow", "f", false, "stream new lines until interrupted")
+	logShowCmd.Flags().IntVar(&watchCount, "count", 0, "with --follow, stop after this many updates (0 = no limit)")
 	logShowCmd.Flags().IntVar(&logShowStartLine, "start-line", 0, "1-indexed start line")
 }

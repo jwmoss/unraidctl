@@ -3,6 +3,7 @@ module github.com/jwmoss/unraidctl
 go 1.27.2
 
 require (
+	github.com/coder/websocket v1.8.15
 	github.com/spf13/cobra v1.10.2
 	github.com/vektah/gqlparser/v2 v2.5.58
 	gopkg.in/yaml.v3 v3.0.1

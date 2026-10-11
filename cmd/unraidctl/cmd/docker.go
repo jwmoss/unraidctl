@@ -12,7 +12,7 @@ var dockerCmd = &cobra.Command{
 	Use:     "docker",
 	Aliases: []string{"container"},
 	Short:   "Manage Docker containers",
-	Long:    `Commands for listing Docker containers on your Unraid server.`,
+	Long:    `Commands for listing and managing Docker containers on your Unraid server.`,
 }
 
 var (
@@ -112,7 +112,69 @@ var dockerStopCmd = dockerActionCommand("stop", "Stop a Docker container", api.D
 var dockerRestartCmd = dockerActionCommand("restart", "Restart a Docker container", api.DockerRestartMutation)
 var dockerPauseCmd = dockerActionCommand("pause", "Pause a Docker container", api.DockerPauseMutation)
 var dockerUnpauseCmd = dockerActionCommand("unpause", "Unpause a Docker container", api.DockerUnpauseMutation)
-var dockerUpdateCmd = dockerActionCommand("update", "Update a Docker container image", api.DockerUpdateMutation)
+var dockerUpdateCmd = &cobra.Command{
+	Use:   "update <container-id>...",
+	Short: "Update one or more Docker container images",
+	Args:  cobra.MinimumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 1 {
+			return dockerActionCommand("update", "", api.DockerUpdateMutation).RunE(cmd, args)
+		}
+		var resp struct {
+			Docker struct {
+				Containers []api.DockerContainer `json:"updateContainers"`
+			} `json:"docker"`
+		}
+		if err := queryWithTimeout(api.DockerUpdateManyMutation, map[string]interface{}{"ids": args}, &resp); err != nil {
+			return fmt.Errorf("failed to update containers: %w", err)
+		}
+		return printJSONOr(resp.Docker.Containers, func() {
+			out.Success(fmt.Sprintf("Updated %d container(s)", len(resp.Docker.Containers)))
+			renderDockerContainers(resp.Docker.Containers, true)
+		})
+	},
+}
+
+var dockerCheckUpdatesCmd = &cobra.Command{
+	Use: "check-updates", Short: "Refresh image digests so update status is current", Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var resp struct {
+			OK bool `json:"refreshDockerDigests"`
+		}
+		if err := queryWithTimeout(api.DockerRefreshDigestsMutation, nil, &resp); err != nil {
+			return fmt.Errorf("failed to refresh Docker digests: %w", err)
+		}
+		return reportResult(resp.OK, "Docker digests refreshed; run 'docker list --wide' for update status", "Docker digests were not refreshed")
+	},
+}
+
+var dockerStatsCmd = &cobra.Command{
+	Use: "stats", Short: "Stream live container CPU, memory, network, and block I/O", Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var resp api.DockerResponse
+		if err := queryWithTimeout(api.ContainerHealthQuery, nil, &resp); err != nil {
+			return fmt.Errorf("failed to list containers: %w", err)
+		}
+		// Stats IDs can carry terminal escapes from docker stats output; match on the 64-character hash.
+		hash := func(id string) string { return id[max(0, len(id)-64):] }
+		names := map[string]string{}
+		for _, c := range resp.Docker.Containers {
+			names[hash(c.ID)] = containerName(c)
+		}
+		return watch(api.DockerStatsSubscription, nil, func(r struct {
+			Stats api.DockerContainerStats `json:"dockerContainerStats"`
+		}) error {
+			st := r.Stats
+			return printJSONOr(st, func() {
+				name := names[hash(st.ID)]
+				if name == "" {
+					name = hash(st.ID)
+				}
+				out.Print("%-24s cpu %6.2f%%  mem %s (%.1f%%)  net %s  block %s\n", name, st.CPUPercent, st.MemUsage, st.MemPercent, st.NetIO, st.BlockIO)
+			})
+		})
+	},
+}
 
 var dockerUpdateAllCmd = &cobra.Command{
 	Use:   "update-all",
@@ -351,6 +413,8 @@ func init() {
 	dockerCmd.AddCommand(dockerUpdateAllCmd)
 	dockerCmd.AddCommand(dockerRemoveCmd)
 	dockerCmd.AddCommand(dockerAutostartCmd)
+	dockerCmd.AddCommand(dockerCheckUpdatesCmd)
+	dockerCmd.AddCommand(dockerStatsCmd)
 
 	dockerListCmd.Flags().BoolVarP(&dockerWide, "wide", "w", false, "show extended Docker metadata")
 	dockerLogsCmd.Flags().IntVar(&dockerLogsTail, "tail", 100, "number of log lines to read")
@@ -359,5 +423,6 @@ func init() {
 	dockerAutostartCmd.Flags().BoolVar(&dockerAutostartEnable, "enable", false, "enable autostart")
 	dockerAutostartCmd.Flags().BoolVar(&dockerAutostartDisable, "disable", false, "disable autostart")
 	dockerAutostartCmd.Flags().IntVar(&dockerAutostartWait, "wait", -1, "seconds to wait after autostarting")
+	dockerStatsCmd.Flags().IntVar(&watchCount, "count", 0, "stop after this many updates (0 = no limit)")
 	dockerAutostartCmd.Flags().BoolVar(&dockerAutostartPersist, "persist", true, "persist user preferences")
 }
