@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-10
+
 ### Added
 
 - Add GraphQL subscriptions over WebSocket: `--watch` for CPU, memory, temperature, and network metrics, `metrics cpu-telemetry`, `docker stats`, `log show --follow`, and `notification watch`.
