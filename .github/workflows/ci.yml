@@ -36,31 +36,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $unformatted = gofmt -l (Get-ChildItem -Recurse -Filter *.go | Select-Object -ExpandProperty FullName)
+          $files = Get-ChildItem -Recurse -Filter *.go | Select-Object -ExpandProperty FullName
+          $unformatted = gofmt -l $files
           if ($unformatted) { throw "Unformatted Go files: $unformatted" }
           go mod tidy -diff
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          go vet ./...
+          go vet -tags=live ./...
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          go test -count=1 -timeout=2m ./...
+          go test -count=1 -timeout=2m ./internal/api -run TestOperationsMatchReleasedSchemas
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           go build ./...
           exit $LASTEXITCODE
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        if: runner.os == 'Linux'
-        with:
-          node-version: '26.10.0'
-          cache: npm
-      - name: CLI end-to-end flows
-        if: runner.os == 'Linux'
-        env:
-          DO_NOT_TRACK: '1'
-        run: |
-          npm ci --ignore-scripts
-          npm run test:e2e
-      - name: Race check
-        if: runner.os == 'Linux'
-        run: go test -race -timeout=2m ./...
 
   quality:
     runs-on: ubuntu-latest

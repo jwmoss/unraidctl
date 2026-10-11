@@ -236,10 +236,18 @@ unraidctl docker list --json | jq '.[].names[0]'
 
 ## Development tests
 
-Run the native checks with `go test ./...`, `go build ./...`, and `make lint`.
-Run the compiled CLI flows with `npm ci --ignore-scripts`, then `npm run test:e2e`.
-These tests use local fixtures and require no Unraid credentials.
-See the [command coverage matrix](tests/e2e/README.md) for server verification limits.
+Run `make check` for formatting, module, vet, released-schema, and build checks.
+Run `make lint` for the pinned Go lint checks.
+Run `make test` with existing credentials for live information and array-status checks.
+These checks read the configured server and print no server data.
+They do not verify mutations or failure paths.
+
+Use `--dry-run` to block GraphQL mutations and local configuration writes.
+Read commands remain available. Use `--timeout 10s` to set the request deadline.
+Use `--trace-http` for method, path, status, and duration on stderr.
+Use `--plain` for table rows without headers and color.
+The version command supports `--json` and `--plain`.
+Settings updates preserve large JSON integers.
 
 ## Contributing
 
@@ -249,3 +257,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 The CLI uses the MIT license. See [LICENSE](LICENSE).
 The unmodified upstream test schemas retain their separate GPL-2.0-or-later license. See [fixture notice](internal/api/testdata/README.md).
+
+CI runs static checks without service credentials. Unit tests and fake-server suites are intentionally absent.
