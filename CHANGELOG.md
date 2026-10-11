@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-10
+
+### Added
+
+- Add GraphQL subscriptions over WebSocket: `--watch` for CPU, memory, temperature, and network metrics, `metrics cpu-telemetry`, `docker stats`, `log show --follow`, and `notification watch`.
+- Add VM start, stop, pause, resume, force-stop, reboot, and reset, and show VM IDs in `vm list`.
+- Add parity check start, pause, resume, and cancel.
+- Add notification archive, unarchive, delete, delete-archived, create, and recalculate, and show notification IDs.
+- Add `docker check-updates` and multi-container `docker update`.
+- Add `system services`, `server`, `interfaces`, `plugins`, `time`, `timezones`, and `set-time`.
+- Add `ups config`, `ups set`, and `flash backup`.
+- Require `--yes` for notification deletion, UPS changes, and time changes.
+- Validate operations against the Unraid API 4.37.5 schema.
+- Gate cognitive and cyclomatic complexity with cccc in `make check` and CI.
+
 ## [1.4.0] - 2026-10-10
 
 - Add mutation-safe dry runs, configurable request timeouts, and redacted HTTP traces.

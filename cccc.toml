@@ -1,0 +1,7 @@
+# Complexity gate for `make complexity` and CI (https://github.com/moznion/cccc).
+# Limits match the current worst function. Lower them as code is refactored.
+languages = ["go"]
+exclude = ["*_test.go", "tests/**"]
+table = true
+max-cognitive = 20
+max-cyclomatic = 18

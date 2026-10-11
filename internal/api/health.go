@@ -77,6 +77,12 @@ type CPUUtilization struct {
 	PercentTotal float64 `json:"percentTotal"`
 }
 
+type CPUPackages struct {
+	TotalPower float64   `json:"totalPower"`
+	Power      []float64 `json:"power"`
+	Temp       []float64 `json:"temp"`
+}
+
 type MemoryUtilization struct {
 	Total        int64   `json:"total"`
 	Available    int64   `json:"available"`

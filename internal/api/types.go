@@ -154,6 +154,15 @@ type DockerMutationResponse struct {
 	} `json:"docker"`
 }
 
+type DockerContainerStats struct {
+	ID         string  `json:"id"`
+	CPUPercent float64 `json:"cpuPercent"`
+	MemUsage   string  `json:"memUsage"`
+	MemPercent float64 `json:"memPercent"`
+	NetIO      string  `json:"netIO"`
+	BlockIO    string  `json:"blockIO"`
+}
+
 type MetricsResponse struct {
 	Metrics Metrics `json:"metrics"`
 }
@@ -219,8 +228,8 @@ type Notification struct {
 
 type VMsResponse struct {
 	VMs struct {
-		ID     string `json:"id"`
-		Domain []VM   `json:"domain"`
+		ID      string `json:"id"`
+		Domains []VM   `json:"domains"`
 	} `json:"vms"`
 }
 
@@ -361,6 +370,7 @@ type UpdateSettingsResponse struct {
 }
 
 type VM struct {
+	ID    string `json:"id"`
 	Name  string `json:"name"`
 	State string `json:"state"`
 }

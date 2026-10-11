@@ -610,20 +610,6 @@ query($token: String!) {
 }
 `
 
-// Note: VMs query structure - vms.domain contains VM list
-// But VMs may not be available on all systems
-const VMsQuery = `
-query {
-	vms {
-		id
-		domain {
-			name
-			state
-		}
-	}
-}
-`
-
 const UPSQuery = `
 query {
  upsDevices {
@@ -677,3 +663,105 @@ query {
 const ContainerHealthQuery = `
 query { docker { containers { id names state status image autoStart } } }
 `
+
+const VMListQuery = `
+query { vms { id domains { id name state } } }
+`
+
+const VMStartMutation = `mutation($id: PrefixedID!) { vm { start(id: $id) } }`
+const VMStopMutation = `mutation($id: PrefixedID!) { vm { stop(id: $id) } }`
+const VMPauseMutation = `mutation($id: PrefixedID!) { vm { pause(id: $id) } }`
+const VMResumeMutation = `mutation($id: PrefixedID!) { vm { resume(id: $id) } }`
+const VMForceStopMutation = `mutation($id: PrefixedID!) { vm { forceStop(id: $id) } }`
+const VMRebootMutation = `mutation($id: PrefixedID!) { vm { reboot(id: $id) } }`
+const VMResetMutation = `mutation($id: PrefixedID!) { vm { reset(id: $id) } }`
+
+const ParityStartMutation = `mutation($correct: Boolean!) { parityCheck { start(correct: $correct) } }`
+const ParityPauseMutation = `mutation { parityCheck { pause } }`
+const ParityResumeMutation = `mutation { parityCheck { resume } }`
+const ParityCancelMutation = `mutation { parityCheck { cancel } }`
+
+const NotificationArchiveManyMutation = `mutation($ids: [PrefixedID!]!) { archiveNotifications(ids: $ids) { unread { total info warning alert } archive { total info warning alert } } }`
+const NotificationArchiveAllMutation = `mutation($importance: NotificationImportance) { archiveAll(importance: $importance) { unread { total info warning alert } archive { total info warning alert } } }`
+const NotificationUnarchiveManyMutation = `mutation($ids: [PrefixedID!]!) { unarchiveNotifications(ids: $ids) { unread { total info warning alert } archive { total info warning alert } } }`
+const NotificationUnarchiveAllMutation = `mutation($importance: NotificationImportance) { unarchiveAll(importance: $importance) { unread { total info warning alert } archive { total info warning alert } } }`
+const NotificationDeleteMutation = `mutation($id: PrefixedID!, $type: NotificationType!) { deleteNotification(id: $id, type: $type) { unread { total info warning alert } archive { total info warning alert } } }`
+const NotificationDeleteArchivedMutation = `mutation { deleteArchivedNotifications { unread { total info warning alert } archive { total info warning alert } } }`
+const NotificationCreateMutation = `mutation($input: NotificationData!) { createNotification(input: $input) { id subject importance timestamp type } }`
+const NotificationNotifyIfUniqueMutation = `mutation($input: NotificationData!) { notifyIfUnique(input: $input) { id subject importance timestamp type } }`
+const NotificationRecalculateMutation = `mutation { recalculateOverview { unread { total info warning alert } archive { total info warning alert } } }`
+
+const DockerUpdateManyMutation = `
+mutation($ids: [PrefixedID!]!) {
+ docker { updateContainers(ids: $ids) { id names state status image autoStart isUpdateAvailable isRebuildReady } }
+}
+`
+
+const DockerRefreshDigestsMutation = `mutation { refreshDockerDigests }`
+
+const FlashBackupMutation = `
+mutation($input: InitiateFlashBackupInput!) { initiateFlashBackup(input: $input) { status jobId } }
+`
+
+const ServicesQuery = `
+query { services { id name online version uptime { timestamp } } }
+`
+
+const ServerQuery = `
+query { server { id name comment status lanip wanip localurl remoteurl } }
+`
+
+const NetworkInterfacesQuery = `
+query {
+ networkInterfaces {
+  id name description macAddress mtu speed duplex virtual operstate type vlanId
+  ipAddress netmask gateway useDhcp ipv6Address ipv6Netmask ipv6Gateway useDhcp6
+ }
+}
+`
+
+const PluginsQuery = `
+query { plugins { name version hasApiModule hasCliModule } installedUnraidPlugins }
+`
+
+const SystemTimeQuery = `
+query { systemTime { currentTime timeZone useNtp ntpServers } }
+`
+
+const TimeZoneOptionsQuery = `
+query { timeZoneOptions { value label } }
+`
+
+const UpdateSystemTimeMutation = `
+mutation($input: UpdateSystemTimeInput!) { updateSystemTime(input: $input) { currentTime timeZone useNtp ntpServers } }
+`
+
+const UPSConfigurationQuery = `
+query {
+ upsConfiguration {
+  service upsCable customUpsCable upsType device overrideUpsCapacity batteryLevel minutes timeout killUps
+  nisIp netServer upsName modelName
+ }
+}
+`
+
+const ConfigureUPSMutation = `mutation($config: UPSConfigInput!) { configureUps(config: $config) }`
+
+const CPUSubscription = `subscription { systemMetricsCpu { percentTotal } }`
+const MemorySubscription = `subscription { systemMetricsMemory { total available active percentTotal } }`
+const TemperatureSubscription = `subscription { systemMetricsTemperature { sensors { name type current { value unit status } } } }`
+
+const NetworkSubscription = `
+subscription {
+ systemMetricsNetwork {
+  id name operstate bytesReceived bytesSent packetsReceived packetsSent receiveErrors transmitErrors
+  receiveDropped transmitDropped rxSec txSec utilizationPercent lastUpdated
+ }
+}
+`
+
+const CPUTelemetrySubscription = `subscription { systemMetricsCpuTelemetry { totalPower power temp } }`
+const DockerStatsSubscription = `subscription { dockerContainerStats { id cpuPercent memUsage memPercent netIO blockIO } }`
+const LogFileSubscription = `subscription($path: String!) { logFile(path: $path) { path content totalLines startLine } }`
+
+const NotificationSubscription = `subscription { notificationAdded { id subject importance timestamp type } }`

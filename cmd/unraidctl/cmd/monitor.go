@@ -1,13 +1,15 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/jwmoss/unraidctl/internal/api"
 	"github.com/spf13/cobra"
 )
 
-var upsCmd = &cobra.Command{Use: "ups", Short: "View UPS status"}
+var upsCmd = &cobra.Command{Use: "ups", Short: "View UPS status and configuration"}
 var upsStatusCmd = &cobra.Command{
 	Use: "status", Short: "Show raw UPS status and reported measurements", Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -15,11 +17,59 @@ var upsStatusCmd = &cobra.Command{
 		if err := queryWithTimeout(api.UPSQuery, nil, &resp); err != nil {
 			return fmt.Errorf("failed to get UPS status: %w", err)
 		}
-		if out.IsJSON() {
-			return out.JSON(resp.Devices)
+		return printJSONOr(resp.Devices, func() { renderUPS(resp.Devices) })
+	},
+}
+
+var upsConfigCmd = &cobra.Command{
+	Use: "config", Short: "Show the UPS daemon configuration", Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var resp struct {
+			Config map[string]interface{} `json:"upsConfiguration"`
 		}
-		renderUPS(resp.Devices)
-		return nil
+		if err := queryWithTimeout(api.UPSConfigurationQuery, nil, &resp); err != nil {
+			return fmt.Errorf("failed to get UPS configuration: %w", err)
+		}
+		return printJSONOr(resp.Config, func() { renderFields(resp.Config) })
+	},
+}
+
+var upsSetCmd = &cobra.Command{
+	// Not "configure": root.go treats that name as the local credentials command.
+	Use:   "set",
+	Short: "Change the UPS daemon configuration",
+	Long:  "Change only the settings given as flags. Values use the API enums, for example --service ENABLE --cable USB --type USB --kill-ups NO.",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		config := map[string]interface{}{}
+		for flag, key := range map[string]string{"service": "service", "cable": "upsCable", "custom-cable": "customUpsCable", "type": "upsType", "device": "device", "kill-ups": "killUps"} {
+			if cmd.Flags().Changed(flag) {
+				value, _ := cmd.Flags().GetString(flag)
+				if key != "device" && key != "customUpsCable" {
+					value = strings.ToUpper(value) // API enums are uppercase.
+				}
+				config[key] = value
+			}
+		}
+		for flag, key := range map[string]string{"capacity": "overrideUpsCapacity", "battery-level": "batteryLevel", "minutes": "minutes", "timeout-seconds": "timeout"} {
+			if cmd.Flags().Changed(flag) {
+				value, _ := cmd.Flags().GetInt(flag)
+				config[key] = value
+			}
+		}
+		if len(config) == 0 {
+			return fmt.Errorf("set at least one setting flag")
+		}
+		if err := requireYes(cmd, "this changes when the server shuts down on battery power"); err != nil {
+			return err
+		}
+		var resp struct {
+			OK bool `json:"configureUps"`
+		}
+		if err := queryWithTimeout(api.ConfigureUPSMutation, map[string]interface{}{"config": config}, &resp); err != nil {
+			return fmt.Errorf("failed to configure UPS: %w", err)
+		}
+		return reportResult(resp.OK, "UPS configuration updated", "UPS configuration was not updated")
 	},
 }
 
@@ -68,7 +118,7 @@ var diskListCmd = &cobra.Command{
 	},
 }
 
-var parityCmd = &cobra.Command{Use: "parity", Short: "View parity checks"}
+var parityCmd = &cobra.Command{Use: "parity", Short: "View and control parity checks"}
 var parityStatusCmd = &cobra.Command{
 	Use: "status", Short: "Show the current or latest parity check", Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -87,6 +137,38 @@ var parityStatusCmd = &cobra.Command{
 		return nil
 	},
 }
+
+var parityCorrect bool
+
+var parityStartCmd = &cobra.Command{
+	Use: "start", Short: "Start a parity check (read-only unless --correct)", Args: cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runParityMutation(api.ParityStartMutation, map[string]interface{}{"correct": parityCorrect}, "start")
+	},
+}
+var parityPauseCmd = parityActionCommand("pause", "Pause the running parity check", api.ParityPauseMutation)
+var parityResumeCmd = parityActionCommand("resume", "Resume a paused parity check", api.ParityResumeMutation)
+var parityCancelCmd = parityActionCommand("cancel", "Cancel the running parity check", api.ParityCancelMutation)
+
+func parityActionCommand(use, short, mutation string) *cobra.Command {
+	return &cobra.Command{
+		Use: use, Short: short, Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error { return runParityMutation(mutation, nil, use) },
+	}
+}
+
+// runParityMutation reports the untyped JSON result that the API returns for parity actions.
+func runParityMutation(mutation string, variables map[string]interface{}, action string) error {
+	var resp struct {
+		ParityCheck map[string]json.RawMessage `json:"parityCheck"`
+	}
+	if err := queryWithTimeout(mutation, variables, &resp); err != nil {
+		return fmt.Errorf("failed to %s parity check: %w", action, err)
+	}
+	result := resp.ParityCheck[action]
+	return printJSONOr(result, func() { out.Success(fmt.Sprintf("Parity check %s requested: %s", action, result)) })
+}
+
 var parityHistoryCmd = &cobra.Command{
 	Use: "history", Short: "List parity check history", Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -115,8 +197,16 @@ func renderParity(checks []api.ParityCheck) {
 }
 
 func init() {
-	upsCmd.AddCommand(upsStatusCmd)
+	upsCmd.AddCommand(upsStatusCmd, upsConfigCmd, upsSetCmd)
 	diskCmd.AddCommand(diskListCmd)
-	parityCmd.AddCommand(parityStatusCmd, parityHistoryCmd)
+	parityCmd.AddCommand(parityStatusCmd, parityHistoryCmd, parityStartCmd, parityPauseCmd, parityResumeCmd, parityCancelCmd)
+	parityStartCmd.Flags().BoolVar(&parityCorrect, "correct", false, "write corrections to parity")
+	for _, flag := range []string{"service", "cable", "custom-cable", "type", "device", "kill-ups"} {
+		upsSetCmd.Flags().String(flag, "", "UPS "+flag+" setting")
+	}
+	for _, flag := range []string{"capacity", "battery-level", "minutes", "timeout-seconds"} {
+		upsSetCmd.Flags().Int(flag, 0, "UPS "+flag+" setting")
+	}
+	upsSetCmd.Flags().Bool("yes", false, "confirm the change")
 	rootCmd.AddCommand(upsCmd, diskCmd, parityCmd)
 }

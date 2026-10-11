@@ -1,7 +1,7 @@
-.PHONY: schema test-e2e build clean test install lint fmt-check tidy-check vet check release-tool-check release-check release-snapshot
+.PHONY: complexity schema test-e2e build clean test install lint fmt-check tidy-check vet check release-tool-check release-check release-snapshot
 
 BINARY_NAME=unraidctl
-VERSION?=1.4.0
+VERSION?=1.5.0
 GORELEASER_VERSION := $(shell cat .goreleaser-version)
 GORELEASER := goreleaser
 VERSION_PACKAGE=github.com/jwmoss/unraidctl/cmd/unraidctl/cmd
@@ -35,7 +35,10 @@ vet:
 schema:
 	go test -count=1 -timeout=2m ./internal/api -run TestOperationsMatchReleasedSchemas
 
-check: fmt-check tidy-check vet schema build
+complexity:
+	@if command -v cccc >/dev/null; then cccc --top-cognitive 5 cmd internal pkg; else echo "cccc not installed; skipping (cargo install cccc-cli)"; fi
+
+check: fmt-check tidy-check vet schema complexity build
 
 release-tool-check:
 	@$(GORELEASER) --version | grep -Eq "^GitVersion: +v?$(subst .,[.],$(GORELEASER_VERSION:v%=%))$$" || { echo "Install GoReleaser $(GORELEASER_VERSION)"; exit 1; }
