@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-10
+
 - Add mutation-safe dry runs, configurable request timeouts, and redacted HTTP traces.
 - Add JSON version output and plain table output.
 - Preserve exact JSON numbers in settings updates and limit responses to 64 MiB.
 - Replace unit and fixture-server suites with live read-only executable checks.
 - Keep credential-free CI limited to builds, lint, and static checks.
 - Keep static validation against released GraphQL schemas.
+
+- Use Go 1.27.2 for security fixes and align pre-commit tooling.
 
 ## [1.3.1] - 2026-10-06
 

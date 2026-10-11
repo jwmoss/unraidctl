@@ -1,7 +1,7 @@
 .PHONY: schema test-e2e build clean test install lint fmt-check tidy-check vet check release-tool-check release-check release-snapshot
 
 BINARY_NAME=unraidctl
-VERSION?=1.3.1
+VERSION?=1.4.0
 GORELEASER_VERSION := $(shell cat .goreleaser-version)
 GORELEASER := goreleaser
 VERSION_PACKAGE=github.com/jwmoss/unraidctl/cmd/unraidctl/cmd
