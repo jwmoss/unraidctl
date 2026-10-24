@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-10-24
+
+### Added
+
+- Validate operations against the Unraid API 4.37.7 schema. The 4.37.6 and 4.37.7 schemas are identical to 4.37.5.
+
+### Security
+
+- Use Go 1.27.3 to fix GO-2026-6809 in `crypto/x509`.
+
 ## [1.5.0] - 2026-10-10
 
 ### Added

@@ -10,7 +10,7 @@
 - CI workflows live in `.github/workflows/`.
 
 ## Build, Test, and Development Commands
-- `make build` – Compile CLI to `./unraidctl` with command package version metadata from `VERSION` (default `1.5.0`).
+- `make build` – Compile CLI to `./unraidctl` with command package version metadata from `VERSION` (default `1.5.1`).
 - `make install` – Install binary into your Go bin path with version metadata.
 - `make test` – Run live read-only CLI checks against the configured server.
 - `make check` – Run formatting, module, vet, schema, complexity, and build checks.

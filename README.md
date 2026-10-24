@@ -51,7 +51,7 @@ The `API version` row shows the active server API version.
 | `unraidctl metrics network` | 4.35 |
 | `unraidctl docker restart <container-id>` | 4.36 |
 
-The contract tests cover API **4.37.3**, **4.37.4**, and **4.37.5**. Older APIs can require a Connect plugin update.
+The contract tests cover API **4.37.3** through **4.37.7**. Older APIs can require a Connect plugin update.
 The health and reporting commands require read access to their resources. On API 4.37.4, UPS access requires `CONFIG:READ_ANY`.
 Feature flags can restrict Docker fields even when the generated schema includes them.
 
