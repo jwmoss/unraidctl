@@ -68,7 +68,7 @@ type ArrayDisk struct {
 }
 
 type DockerResponse struct {
-	Docker struct {
+	Docker *struct {
 		Containers []DockerContainer `json:"containers"`
 	} `json:"docker"`
 }
@@ -118,13 +118,13 @@ type ContainerHostConfig struct {
 }
 
 type DockerContainerResponse struct {
-	Docker struct {
+	Docker *struct {
 		Container DockerContainer `json:"container"`
 	} `json:"docker"`
 }
 
 type DockerLogsResponse struct {
-	Docker struct {
+	Docker *struct {
 		Logs DockerContainerLogs `json:"logs"`
 	} `json:"docker"`
 }
@@ -227,7 +227,7 @@ type Notification struct {
 }
 
 type VMsResponse struct {
-	VMs struct {
+	VMs *struct {
 		ID      string `json:"id"`
 		Domains []VM   `json:"domains"`
 	} `json:"vms"`

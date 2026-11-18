@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Report unavailable Docker and VM services on API 4.37.8 and later. Health reports mark missing Docker data as incomplete.
+
 ## [1.5.1] - 2026-10-24
 
 ### Added

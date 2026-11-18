@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -26,13 +27,25 @@ var (
 	dockerAutostartPersist bool
 )
 
+var errDockerUnavailable = errors.New("the Docker service is unavailable on this server")
+
+func readContainers(query string, resp *api.DockerResponse) error {
+	if err := queryWithTimeout(query, nil, resp); err != nil {
+		return err
+	}
+	if resp.Docker == nil {
+		return errDockerUnavailable
+	}
+	return nil
+}
+
 var dockerListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
 	Short:   "List Docker containers",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var resp api.DockerResponse
-		if err := queryWithTimeout(api.DockerContainersQuery, nil, &resp); err != nil {
+		if err := readContainers(api.DockerContainersQuery, &resp); err != nil {
 			return fmt.Errorf("failed to list containers: %w", err)
 		}
 
@@ -62,6 +75,9 @@ var dockerInspectCmd = &cobra.Command{
 			return fmt.Errorf("failed to inspect container: %w", err)
 		}
 
+		if resp.Docker == nil {
+			return errDockerUnavailable
+		}
 		container := resp.Docker.Container
 		if container.ID == "" {
 			return fmt.Errorf("container not found: %s", args[0])
@@ -93,6 +109,9 @@ var dockerLogsCmd = &cobra.Command{
 			return fmt.Errorf("failed to read container logs: %w", err)
 		}
 
+		if resp.Docker == nil {
+			return errDockerUnavailable
+		}
 		if out.IsJSON() {
 			return out.JSON(resp.Docker.Logs)
 		}
@@ -152,7 +171,7 @@ var dockerStatsCmd = &cobra.Command{
 	Use: "stats", Short: "Stream live container CPU, memory, network, and block I/O", Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var resp api.DockerResponse
-		if err := queryWithTimeout(api.ContainerHealthQuery, nil, &resp); err != nil {
+		if err := readContainers(api.ContainerHealthQuery, &resp); err != nil {
 			return fmt.Errorf("failed to list containers: %w", err)
 		}
 		// Stats IDs can carry terminal escapes from docker stats output; match on the 64-character hash.
