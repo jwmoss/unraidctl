@@ -66,12 +66,14 @@ func readHealth() healthReport {
 		{"metrics", api.SystemMetricsQuery, &report.MetricsResponse},
 		{"notifications", api.NotificationAlertsQuery, &report.NotificationsResponse},
 		{"parity history", api.ParityHistoryQuery, &report.ParityHistoryResponse},
-		{"containers", api.ContainerHealthQuery, &report.DockerResponse},
 	}
 	for _, read := range reads {
 		if err := queryWithTimeout(read.query, nil, read.result); err != nil {
 			report.Errors = append(report.Errors, fmt.Sprintf("%s: %v", read.name, err))
 		}
+	}
+	if err := readContainers(api.ContainerHealthQuery, &report.DockerResponse); err != nil {
+		report.Errors = append(report.Errors, fmt.Sprintf("containers: %v", err))
 	}
 	report.Checks = assessHealth(report)
 	report.Status = "OK"
@@ -104,13 +106,7 @@ func assessHealth(report healthReport) []healthCheck {
 		level = "ALERT"
 	}
 	checks = append(checks, healthCheck{"Notifications", level, fmt.Sprintf("%d unread alerts; %d warnings; %d informational", counts.Alert, counts.Warning, counts.Info)})
-	for _, container := range report.Docker.Containers {
-		if strings.Contains(strings.ToLower(container.Status), "unhealthy") {
-			checks = append(checks, healthCheck{"Container: " + containerName(container), "ALERT", container.Status})
-		} else if container.AutoStart && container.State != "RUNNING" {
-			checks = append(checks, healthCheck{"Container: " + containerName(container), "WARNING", container.State})
-		}
-	}
+	checks = append(checks, containerHealthChecks(report.DockerResponse)...)
 	if report.Metrics.Temperature != nil {
 		for _, sensor := range report.Metrics.Temperature.Sensors {
 			if sensor.Current.Status != "NORMAL" {
@@ -119,6 +115,21 @@ func assessHealth(report healthReport) []healthCheck {
 		}
 	} else {
 		checks = append(checks, healthCheck{"Temperature", "UNKNOWN", "Temperature metrics are unavailable"})
+	}
+	return checks
+}
+
+func containerHealthChecks(docker api.DockerResponse) []healthCheck {
+	if docker.Docker == nil {
+		return []healthCheck{{"Containers", "UNKNOWN", "Docker service data is unavailable"}}
+	}
+	var checks []healthCheck
+	for _, container := range docker.Docker.Containers {
+		if strings.Contains(strings.ToLower(container.Status), "unhealthy") {
+			checks = append(checks, healthCheck{"Container: " + containerName(container), "ALERT", container.Status})
+		} else if container.AutoStart && container.State != "RUNNING" {
+			checks = append(checks, healthCheck{"Container: " + containerName(container), "WARNING", container.State})
+		}
 	}
 	return checks
 }

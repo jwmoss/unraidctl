@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-11-17
+
+- Handle unavailable Docker and VM services and distinguish them from empty inventories. Validate reads against the Unraid API 4.37.12 schema.
+
 ## [1.5.1] - 2026-10-24
 
 ### Added

@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os/exec"
@@ -74,4 +75,27 @@ func TestLiveReadOnly(t *testing.T) {
 func nonEmptyList(v any) bool {
 	list, ok := v.([]any)
 	return ok && len(list) > 0
+}
+
+func TestLiveServiceInventory(t *testing.T) {
+	for _, service := range []struct{ command, unavailable string }{{"docker", "Docker service is unavailable"}, {"vm", "VM Manager is disabled or unavailable"}} {
+		t.Run(service.command, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+			defer cancel()
+			cmd := exec.CommandContext(ctx, "../unraidctl", "--dry-run", "--json", service.command, "list")
+			var diagnostic bytes.Buffer
+			cmd.Stderr = &diagnostic
+			data, err := cmd.Output()
+			if err != nil {
+				if len(data) == 0 && bytes.Contains(diagnostic.Bytes(), []byte(service.unavailable)) {
+					return
+				}
+				t.Fatalf("inventory did not return a list or a service-unavailable error: %v", err)
+			}
+			var items []json.RawMessage
+			if json.Unmarshal(data, &items) != nil || items == nil {
+				t.Fatal("expected an inventory array")
+			}
+		})
+	}
 }

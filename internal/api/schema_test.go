@@ -8,6 +8,7 @@ import (
 	"go/types"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/vektah/gqlparser/v2"
@@ -38,6 +39,22 @@ func TestOperationsMatchReleasedSchemas(t *testing.T) {
 			schema, err := gqlparser.LoadSchema(&gqlast.Source{Name: fixture, Input: string(data)})
 			if err != nil {
 				t.Fatal(err)
+			}
+			for _, model := range []struct {
+				root  string
+				field any
+			}{
+				{"docker", DockerResponse{}.Docker}, {"docker", DockerContainerResponse{}.Docker},
+				{"docker", DockerLogsResponse{}.Docker}, {"vms", VMsResponse{}.VMs},
+			} {
+				field := schema.Query.Fields.ForName(model.root)
+				if field == nil {
+					t.Errorf("schema lacks the %s query root", model.root)
+					continue
+				}
+				if !field.Type.NonNull && reflect.TypeOf(model.field).Kind() != reflect.Pointer {
+					t.Errorf("%s is nullable and its response model must preserve null", model.root)
+				}
 			}
 			for _, name := range pkg.Scope().Names() {
 				value, ok := pkg.Scope().Lookup(name).(*types.Const)

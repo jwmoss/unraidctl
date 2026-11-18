@@ -6,6 +6,9 @@ These unmodified schemas come from the official Unraid API releases:
 - https://github.com/unraid/api/blob/v4.37.4/api/generated-schema.graphql
 - https://github.com/unraid/api/blob/v4.37.5/api/generated-schema.graphql
 - https://github.com/unraid/api/blob/v4.37.7/api/generated-schema.graphql
+- https://github.com/unraid/api/blob/v4.37.12/api/generated-schema.graphql
+
+Releases 4.37.8 through 4.37.12 have byte-identical schemas. The 4.37.12 fixture covers those five releases.
 
 The 4.37.6 schema is identical to 4.37.5 and 4.37.7, so it has no separate fixture.
 

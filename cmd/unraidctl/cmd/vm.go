@@ -31,6 +31,9 @@ var vmListCmd = &cobra.Command{
 			return fmt.Errorf("failed to list VMs: %w", err)
 		}
 
+		if resp.VMs == nil {
+			return fmt.Errorf("VM Manager is disabled or unavailable on this server")
+		}
 		vms := resp.VMs.Domains
 
 		if out.IsJSON() {
@@ -38,7 +41,7 @@ var vmListCmd = &cobra.Command{
 		}
 
 		if len(vms) == 0 {
-			out.Println("No VMs found (VMs may not be enabled on this server)")
+			out.Println("No VMs found")
 			return nil
 		}
 
